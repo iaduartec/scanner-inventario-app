@@ -1,0 +1,10 @@
+{
+  "name": "duartec-inventario-pwa",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check": "node --check js/app.js && node --check js/scanner.js && node --check js/storage.js && node --check js/ui.js && node --check js/utils.js"
+  }
+}
