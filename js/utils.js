@@ -15,6 +15,28 @@ export function normalizeText(value) {
   return String(value ?? '').trim();
 }
 
+export function normalizeMac(value) {
+  const compact = String(value ?? '')
+    .trim()
+    .toUpperCase()
+    .replace(/[O]/g, '0')
+    .replace(/[IL]/g, '1')
+    .replace(/[^0-9A-F]/g, '');
+
+  if (compact.length < 12) {
+    return String(value ?? '')
+      .trim()
+      .toUpperCase()
+      .replace(/[:\s]+/g, '-')
+      .replace(/-+/g, '-');
+  }
+
+  return compact
+    .slice(0, 12)
+    .match(/.{1,2}/g)
+    ?.join('-') ?? compact;
+}
+
 export function normalizeEstado(estado) {
   const normalized = normalizeText(estado).toUpperCase();
   return LEGACY_ESTADO_MAP[normalized] ?? normalized;
@@ -52,6 +74,7 @@ function buildHistoryEntry(record, tipo) {
     tipo,
     estado: normalizeEstado(record.estado),
     modelo: record.modelo,
+    mac: record.mac,
     cliente: record.cliente,
     ubicacion: record.ubicacion,
     tecnico: record.tecnico,
@@ -68,6 +91,7 @@ export function ensureRecordHistory(record) {
     ...record,
     estado: normalizeEstado(record.estado),
     modelo: normalizeText(record.modelo),
+    mac: normalizeMac(record.mac),
     cliente: normalizeText(record.cliente),
     ubicacion: normalizeText(record.ubicacion),
     tecnico: normalizeText(record.tecnico),
@@ -85,6 +109,7 @@ export function ensureRecordHistory(record) {
         ? history.map((entry) => ({
             ...entry,
             estado: normalizeEstado(entry.estado),
+            mac: normalizeMac(entry.mac),
           }))
         : [
             buildHistoryEntry(
@@ -102,6 +127,7 @@ export function toCsv(records) {
   const header = [
     'id',
     'serial',
+    'mac',
     'modelo',
     'estado',
     'cliente',
@@ -117,6 +143,7 @@ export function toCsv(records) {
     [
       record.id,
       record.serial,
+      record.mac,
       record.modelo,
       normalizeEstado(record.estado),
       record.cliente,
@@ -160,6 +187,7 @@ export function createRecord(input, currentRecord) {
   const nextRecord = {
     id: currentRecord?.id ?? createId(),
     serial,
+    mac: normalizeMac(input.mac),
     modelo: normalizeText(input.modelo),
     estado,
     cliente: normalizeText(input.cliente),

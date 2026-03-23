@@ -39,7 +39,7 @@ export function renderRecords({ records: registros, tableBody: cuerpoTabla, onEd
         <tr class="${idSeleccionado === registro.id ? 'is-selected' : ''}">
           <td class="serial-cell">
             <strong>${registro.serial}</strong>
-            <span class="serial-meta">${registro.fuenteCaptura} · ${registro.observaciones || 'Sin observaciones'}</span>
+            <span class="serial-meta">${registro.mac ? `MAC ${registro.mac} · ` : ''}${registro.fuenteCaptura} · ${registro.observaciones || 'Sin observaciones'}</span>
           </td>
           <td><span class="status-pill status-${registro.estado}">${registro.estado}</span></td>
           <td>${registro.modelo || '—'}</td>
@@ -94,7 +94,7 @@ export function renderRecordDetail({ container: contenedor, record: registro, on
       <div>
         <p class="eyebrow">Detalle de equipo</p>
         <h3>${registro.serial}</h3>
-        <p class="subtle">${registro.modelo || 'Sin modelo'} · ${registro.cliente || 'Sin cliente'} · ${registro.ubicacion || 'Sin ubicación'}</p>
+        <p class="subtle">${registro.mac ? `MAC ${registro.mac} · ` : ''}${registro.modelo || 'Sin modelo'} · ${registro.cliente || 'Sin cliente'} · ${registro.ubicacion || 'Sin ubicación'}</p>
       </div>
       <button type="button" class="ghost-button" data-detail-edit="${registro.id}">Editar este registro</button>
     </div>
@@ -107,6 +107,10 @@ export function renderRecordDetail({ container: contenedor, record: registro, on
       <div>
         <dt>Técnico</dt>
         <dd>${registro.tecnico || '—'}</dd>
+      </div>
+      <div>
+        <dt>MAC</dt>
+        <dd>${registro.mac || '—'}</dd>
       </div>
       <div>
         <dt>Alta</dt>
@@ -136,7 +140,7 @@ export function renderRecordDetail({ container: contenedor, record: registro, on
                 </div>
                 <p>
                   <span class="status-pill status-${movement.estado}">${movement.estado}</span>
-                  <span class="history-meta">${movement.fuenteCaptura} · ${movement.tecnico || 'Sin técnico'} · ${movement.ubicacion || 'Sin ubicación'}</span>
+                  <span class="history-meta">${movement.mac ? `MAC ${movement.mac} · ` : ''}${movement.fuenteCaptura} · ${movement.tecnico || 'Sin técnico'} · ${movement.ubicacion || 'Sin ubicación'}</span>
                 </p>
                 <p class="subtle">${movement.observaciones || 'Sin observaciones registradas.'}</p>
               </li>
@@ -168,7 +172,7 @@ export function toggleDuplicateAlert(elemento, visible) {
 export function updateLastCapture({ serialElement: serialElemento, metaElement: metaElemento, record: registro }) {
   serialElemento.textContent = registro?.serial ?? 'Sin lecturas todavía';
   metaElemento.textContent = registro
-    ? `${registro.estado} · ${registro.modelo || 'Sin modelo'} · ${formatDateTime(registro.fechaUltimoMovimiento)}`
+    ? `${registro.estado}${registro.mac ? ` · MAC ${registro.mac}` : ''} · ${registro.modelo || 'Sin modelo'} · ${formatDateTime(registro.fechaUltimoMovimiento)}`
     : 'Esperando el primer escaneo o alta manual.';
 }
 

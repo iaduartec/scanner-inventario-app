@@ -5,7 +5,7 @@ Aplicación web instalable (PWA) para técnicos de Duartec que necesitan escanea
 ## Resumen
 
 - Mobile-first, pensada para iPhone y Android.
-- Escaneo con cámara usando `html5-qrcode` desde CDN estable.
+- Escaneo con cámara usando `html5-qrcode` para QR y códigos de barras, más OCR para leer `S/N` y `MAC` impresos.
 - Guardado local persistente en `localStorage`.
 - Funciona offline tras la primera carga gracias a `service worker`.
 - Exportación CSV compatible con Excel (BOM UTF-8 + separador `;`).
@@ -17,6 +17,7 @@ Aplicación web instalable (PWA) para técnicos de Duartec que necesitan escanea
 - Se añade panel de detalle del serial seleccionado.
 - Cada alta/edición guarda historial de movimientos por equipo.
 - Los registros antiguos se migran en memoria para no perder compatibilidad con `localStorage`.
+- Se añade lectura OCR para `S/N` y `MAC` cuando el barcode de la caja devuelve `Ref` en vez del serial útil.
 
 
 ### FASE 1 completada
@@ -93,11 +94,15 @@ Sirve la carpeta raíz del repositorio como sitio estático.
 ## Cómo usar
 
 1. Pulsa **Escanear equipo instalado** o **Escanear equipo desinstalado**.
-2. Apunta la cámara al código del equipo.
-3. Revisa el feedback visual/sonoro.
-4. Completa o corrige datos en el formulario si hace falta.
-5. Usa búsqueda y filtros para localizar equipos.
-6. Exporta CSV cuando termines la jornada.
+2. Elige el modo de lectura:
+   - `QR`
+   - `Código de barras`
+   - `S/N` para leer el serial y el `MAC` impresos cuando la etiqueta también trae un `Ref`
+3. Apunta la cámara al código o a la línea `S/N`.
+4. Revisa el feedback visual/sonoro.
+5. Completa o corrige datos en el formulario si hace falta.
+6. Usa búsqueda y filtros para localizar equipos.
+7. Exporta CSV cuando termines la jornada.
 
 ## Estados de equipo
 
@@ -112,6 +117,7 @@ Cada registro contiene:
 
 - `id`
 - `serial`
+- `mac`
 - `modelo`
 - `estado`
 - `cliente`
@@ -157,6 +163,7 @@ También se incluye un CSV de muestra en `examples/export-ejemplo.csv`.
 - iOS/Safari puede requerir reintentar permisos tras instalar la PWA.
 - Sin backend, los datos permanecen en el navegador/dispositivo actual.
 - La librería de escaneo depende de CDN en la primera carga online. Una vez cacheada, la app propia sí puede abrir offline, pero el CDN puede requerir mejora futura si se desea independencia total.
+- El modo `S/N` depende de OCR y necesita mejor luz y encuadre que un barcode convencional.
 
 ## Preparación para Google Sheets (siguiente iteración)
 

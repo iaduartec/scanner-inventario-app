@@ -2,6 +2,7 @@ export const demoRecords = [
   {
     id: 'demo-1',
     serial: '001AE8F7918F',
+    mac: '2C-95-7F-5D-A5-C3',
     modelo: 'iPhone 13 128GB',
     estado: 'INSTALADO',
     cliente: 'Hotel Costa Norte',
@@ -16,6 +17,7 @@ export const demoRecords = [
         id: 'demo-1-mov-1',
         tipo: 'alta',
         estado: 'INSTALADO',
+        mac: '2C-95-7F-5D-A5-C3',
         modelo: 'iPhone 13 128GB',
         cliente: 'Hotel Costa Norte',
         ubicacion: 'Lobby - Rack principal',
@@ -29,6 +31,7 @@ export const demoRecords = [
   {
     id: 'demo-2',
     serial: '001AE8F79C13',
+    mac: '4A-31-9D-10-2B-77',
     modelo: 'Samsung Galaxy A54',
     estado: 'DESINSTALADO',
     cliente: 'Clínica Central',
@@ -43,6 +46,7 @@ export const demoRecords = [
         id: 'demo-2-mov-1',
         tipo: 'alta',
         estado: 'DESINSTALADO',
+        mac: '4A-31-9D-10-2B-77',
         modelo: 'Samsung Galaxy A54',
         cliente: 'Clínica Central',
         ubicacion: 'Almacén móvil',
@@ -56,6 +60,7 @@ export const demoRecords = [
   {
     id: 'demo-3',
     serial: '001AE8FBDDED',
+    mac: 'E8-2A-1C-88-0F-11',
     modelo: 'Motorola G84',
     estado: 'AVERIADO',
     cliente: 'Residencial Laguna',
@@ -70,6 +75,7 @@ export const demoRecords = [
         id: 'demo-3-mov-1',
         tipo: 'alta',
         estado: 'AVERIADO',
+        mac: 'E8-2A-1C-88-0F-11',
         modelo: 'Motorola G84',
         cliente: 'Residencial Laguna',
         ubicacion: 'Caja técnica exterior',

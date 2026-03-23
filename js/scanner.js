@@ -1,99 +1,341 @@
-const scannerState = {
-  instance: null,
-  active: false,
-};
+import { normalizeMac, normalizeSerial } from './utils.js';
 
-const barcodeFormats = [
-  'CODE_128',
-  'CODE_39',
-  'CODE_93',
-  'CODABAR',
-  'EAN_13',
-  'EAN_8',
-  'ITF',
-  'UPC_A',
-  'UPC_E',
+const BARCODE_FORMATS = [
+  Html5QrcodeSupportedFormats.CODE_128,
+  Html5QrcodeSupportedFormats.CODE_39,
+  Html5QrcodeSupportedFormats.CODE_93,
+  Html5QrcodeSupportedFormats.CODABAR,
+  Html5QrcodeSupportedFormats.EAN_13,
+  Html5QrcodeSupportedFormats.EAN_8,
+  Html5QrcodeSupportedFormats.ITF,
+  Html5QrcodeSupportedFormats.UPC_A,
+  Html5QrcodeSupportedFormats.UPC_E,
 ];
 
-function getBarcodeFormatsToSupport() {
-  const formats = window.Html5QrcodeSupportedFormats;
-  if (!formats) return undefined;
+const OCR_SERIAL_PATTERNS = [
+  /S\s*\/\s*N\s*[:\-]?\s*([A-Z0-9][A-Z0-9-]{4,})/i,
+  /\bSN\s*[:\-]?\s*([A-Z0-9][A-Z0-9-]{4,})/i,
+];
 
-  const supported = barcodeFormats
-    .map((format) => formats[format])
-    .filter((format) => typeof format === 'number');
+const OCR_MAC_PATTERNS = [
+  /MAC\s*[:\-]?\s*([0-9A-FOIL]{2}(?:[-:\s]?[0-9A-FOIL]{2}){5})/i,
+];
 
-  return supported.length ? supported : undefined;
+let activeScanner = null;
+
+function getScannerContainer(elementId) {
+  const container = document.getElementById(elementId);
+  if (!container) {
+    throw new Error(`No se encontró el contenedor de escaneo #${elementId}.`);
+  }
+  return container;
 }
 
-function getScanConfiguration(scanMode) {
-  const formats = window.Html5QrcodeSupportedFormats;
-  if (!formats) return {};
+function clearContainer(container) {
+  container.innerHTML = '';
+}
 
+function getQrBox(viewfinderWidth, viewfinderHeight, scanMode) {
+  if (scanMode === 'QR') {
+    const size = Math.max(220, Math.min(viewfinderWidth, viewfinderHeight, 320));
+    return { width: size, height: size };
+  }
+
+  const width = Math.max(280, Math.min(Math.floor(viewfinderWidth * 0.92), 560));
+  const height = Math.max(140, Math.min(Math.floor(viewfinderHeight * 0.3), 190));
+  return { width, height };
+}
+
+function getScannerConfig(scanMode) {
   if (scanMode === 'QR') {
     return {
-      qrbox: { width: 260, height: 260 },
-      aspectRatio: 1,
-      formatsToSupport: [formats.QR_CODE],
-      disableFlip: false,
+      fps: 10,
+      qrbox: (viewfinderWidth, viewfinderHeight) => getQrBox(viewfinderWidth, viewfinderHeight, scanMode),
+      formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
     };
   }
 
   return {
-    qrbox: (viewfinderWidth, viewfinderHeight) => {
-      const width = Math.min(420, Math.floor(viewfinderWidth * 0.9));
-      const height = Math.min(180, Math.floor(viewfinderHeight * 0.22));
-      return { width, height: Math.max(120, height) };
-    },
-    aspectRatio: 1.6,
-    formatsToSupport: getBarcodeFormatsToSupport(),
-    experimentalFeatures: {
-      useBarCodeDetectorIfSupported: true,
-    },
-    disableFlip: true,
+    fps: 12,
+    qrbox: (viewfinderWidth, viewfinderHeight) => getQrBox(viewfinderWidth, viewfinderHeight, scanMode),
+    formatsToSupport: BARCODE_FORMATS,
   };
 }
 
-export async function startScanner({ elementId, scanMode = 'BARCODE', onScan, onError }) {
-  if (!window.Html5Qrcode) {
-    throw new Error('No se pudo cargar la librería html5-qrcode.');
+function normalizeOcrText(text) {
+  return String(text ?? '')
+    .replace(/\u00A0/g, ' ')
+    .replace(/[|]/g, '/')
+    .replace(/\r/g, '\n');
+}
+
+function extractSerialFromOcr(text) {
+  const normalizedText = normalizeOcrText(text);
+  const lines = normalizedText
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const candidates = [...lines, normalizedText.replace(/\s+/g, ' ')];
+
+  for (const candidate of candidates) {
+    for (const pattern of OCR_SERIAL_PATTERNS) {
+      const match = candidate.match(pattern);
+      if (match?.[1]) {
+        return normalizeSerial(match[1]);
+      }
+    }
   }
 
-  if (!scannerState.instance) {
-    scannerState.instance = new window.Html5Qrcode(elementId);
+  for (let index = 0; index < lines.length; index += 1) {
+    const current = lines[index].replace(/\s+/g, ' ');
+    if (/S\s*\/\s*N/i.test(current) || /\bSN\b/i.test(current)) {
+      const nextLine = lines[index + 1] ?? '';
+      const merged = `${current} ${nextLine}`.trim();
+      for (const pattern of OCR_SERIAL_PATTERNS) {
+        const match = merged.match(pattern);
+        if (match?.[1]) {
+          return normalizeSerial(match[1]);
+        }
+      }
+    }
   }
 
-  if (scannerState.active) {
+  return null;
+}
+
+function extractMacFromOcr(text) {
+  const normalizedText = normalizeOcrText(text);
+  const lines = normalizedText
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const candidates = [...lines, normalizedText.replace(/\s+/g, ' ')];
+
+  for (const candidate of candidates) {
+    for (const pattern of OCR_MAC_PATTERNS) {
+      const match = candidate.match(pattern);
+      if (match?.[1]) {
+        return normalizeMac(match[1]);
+      }
+    }
+  }
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const current = lines[index].replace(/\s+/g, ' ');
+    if (/MAC/i.test(current)) {
+      const nextLine = lines[index + 1] ?? '';
+      const merged = `${current} ${nextLine}`.trim();
+      for (const pattern of OCR_MAC_PATTERNS) {
+        const match = merged.match(pattern);
+        if (match?.[1]) {
+          return normalizeMac(match[1]);
+        }
+      }
+    }
+  }
+
+  return '';
+}
+
+async function startBarcodeScanner({ elementId, scanMode, onScan, onError }) {
+  if (typeof Html5Qrcode !== 'function') {
+    throw new Error('La librería de códigos de barras no está disponible.');
+  }
+
+  const container = getScannerContainer(elementId);
+  clearContainer(container);
+
+  const html5Qrcode = new Html5Qrcode(elementId, { formatsToSupport: BARCODE_FORMATS });
+  const successCallback = async (decodedText) => {
     await stopScanner();
-  }
+    await Promise.resolve(onScan(decodedText));
+  };
 
   try {
-    const scanConfiguration = getScanConfiguration(scanMode);
-    await scannerState.instance.start(
+    await html5Qrcode.start(
       { facingMode: 'environment' },
-      {
-        fps: 10,
-        rememberLastUsedCamera: true,
-        ...scanConfiguration,
-      },
-      onScan,
-      () => {},
+      getScannerConfig(scanMode),
+      successCallback,
+      onError,
     );
-    scannerState.active = true;
   } catch (error) {
-    onError?.(error);
+    clearContainer(container);
     throw error;
   }
+
+  activeScanner = {
+    mode: scanMode,
+    html5Qrcode,
+    container,
+  };
+}
+
+function ensureCanvas(width, height) {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  return canvas;
+}
+
+function stopMediaStream(stream) {
+  stream?.getTracks?.().forEach((track) => track.stop());
+}
+
+async function startOcrScanner({ elementId, onScan, onError }) {
+  if (!window.Tesseract?.createWorker) {
+    throw new Error('La librería OCR no está disponible.');
+  }
+
+  const container = getScannerContainer(elementId);
+  clearContainer(container);
+
+  const frame = document.createElement('div');
+  frame.className = 'ocr-frame';
+
+  const video = document.createElement('video');
+  video.className = 'ocr-video';
+  video.autoplay = true;
+  video.playsInline = true;
+  video.muted = true;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'ocr-overlay';
+  overlay.textContent = 'Apunta a la línea S/N y MAC y mantenla centrada un momento.';
+
+  frame.append(video, overlay);
+  container.append(frame);
+
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: false,
+    video: {
+      facingMode: { ideal: 'environment' },
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+    },
+  });
+
+  video.srcObject = stream;
+  await video.play();
+
+  const worker = await window.Tesseract.createWorker('eng');
+  const canvas = ensureCanvas(1600, 1200);
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+
+  const scannerState = {
+    mode: 'SN',
+    container,
+    stream,
+    video,
+    worker,
+    canvas,
+    context,
+    stopped: false,
+    busy: false,
+    timerId: null,
+  };
+
+  const scanFrame = async () => {
+    if (scannerState.stopped) return;
+    if (scannerState.busy) {
+      scannerState.timerId = window.setTimeout(scanFrame, 250);
+      return;
+    }
+
+    if (!scannerState.video.videoWidth || !scannerState.video.videoHeight) {
+      scannerState.timerId = window.setTimeout(scanFrame, 250);
+      return;
+    }
+
+    scannerState.busy = true;
+
+    try {
+      const sourceWidth = scannerState.video.videoWidth;
+      const sourceHeight = scannerState.video.videoHeight;
+      const ratio = Math.min(scannerState.canvas.width / sourceWidth, scannerState.canvas.height / sourceHeight, 1);
+      const drawWidth = Math.max(1, Math.floor(sourceWidth * ratio));
+      const drawHeight = Math.max(1, Math.floor(sourceHeight * ratio));
+      const offsetX = Math.floor((scannerState.canvas.width - drawWidth) / 2);
+      const offsetY = Math.floor((scannerState.canvas.height - drawHeight) / 2);
+
+      scannerState.context.fillStyle = '#ffffff';
+      scannerState.context.fillRect(0, 0, scannerState.canvas.width, scannerState.canvas.height);
+      scannerState.context.drawImage(
+        scannerState.video,
+        0,
+        0,
+        sourceWidth,
+        sourceHeight,
+        offsetX,
+        offsetY,
+        drawWidth,
+        drawHeight,
+      );
+
+      const result = await scannerState.worker.recognize(scannerState.canvas);
+      const text = result?.data?.text ?? '';
+      const serial = extractSerialFromOcr(text);
+      const mac = extractMacFromOcr(text);
+
+      if (serial) {
+        await stopScanner();
+        await Promise.resolve(onScan({ serial, mac, rawText: text }));
+        return;
+      }
+    } catch (error) {
+      onError?.(error);
+    } finally {
+      scannerState.busy = false;
+    }
+
+    if (!scannerState.stopped) {
+      scannerState.timerId = window.setTimeout(scanFrame, 1100);
+    }
+  };
+
+  activeScanner = scannerState;
+  scannerState.timerId = window.setTimeout(scanFrame, 500);
+}
+
+export async function startScanner({ elementId, scanMode = 'BARCODE', onScan, onError = () => {} }) {
+  await stopScanner();
+
+  if (scanMode === 'SN') {
+    await startOcrScanner({ elementId, onScan, onError });
+    return;
+  }
+
+  await startBarcodeScanner({ elementId, scanMode, onScan, onError });
 }
 
 export async function stopScanner() {
-  if (scannerState.instance && scannerState.active) {
-    await scannerState.instance.stop();
-    await scannerState.instance.clear();
-    scannerState.active = false;
+  if (!activeScanner) return;
+
+  const scanner = activeScanner;
+  activeScanner = null;
+
+  if (scanner.timerId) {
+    window.clearTimeout(scanner.timerId);
+  }
+
+  scanner.stopped = true;
+
+  try {
+    if (scanner.mode === 'SN') {
+      stopMediaStream(scanner.stream);
+      await scanner.worker?.terminate?.();
+    } else {
+      await scanner.html5Qrcode?.stop?.();
+      await scanner.html5Qrcode?.clear?.();
+    }
+  } catch {
+    // Limpieza best-effort.
+  } finally {
+    scanner.container && clearContainer(scanner.container);
   }
 }
 
 export function isScannerActive() {
-  return scannerState.active;
+  return Boolean(activeScanner);
 }

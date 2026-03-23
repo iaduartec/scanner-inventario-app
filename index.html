@@ -26,6 +26,7 @@
     <link rel="icon" href="icons/icon-512.png" sizes="512x512" type="image/png" />
     <link rel="stylesheet" href="css/styles.css" />
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
     <script type="module" src="js/app.js" defer></script>
   </head>
   <body>
@@ -103,6 +104,7 @@
           <div class="scan-mode-switch" role="tablist" aria-label="Modo de lectura">
             <button id="scanModeQrButton" class="mode-chip" type="button">QR</button>
             <button id="scanModeBarcodeButton" class="mode-chip" type="button">Código de barras</button>
+            <button id="scanModeSnButton" class="mode-chip" type="button">S/N</button>
           </div>
 
           <div class="quick-actions" role="group" aria-label="Acciones principales de escaneo">
@@ -115,13 +117,13 @@
               <div class="scanner-toolbar">
                 <div>
                   <p class="scanner-status-label">Estado de captura</p>
-                  <strong id="scannerModeLabel">Cámara inactiva · código de barras</strong>
+                  <strong id="scannerModeLabel">Cámara inactiva · S/N</strong>
                 </div>
                 <button id="stopScannerButton" class="ghost-button" type="button">Detener cámara</button>
               </div>
               <div id="reader" class="reader" aria-live="polite"></div>
               <p class="hint">
-                En iPhone usa Safari y acepta permisos de cámara. Apunta al código de barras o serial con buena luz y, si no aparece imagen, recarga la PWA y vuelve a permitir la cámara.
+                En iPhone usa Safari y acepta permisos de cámara. Apunta al QR, código de barras o a la línea S/N y MAC con buena luz y, si no aparece imagen, recarga la PWA y vuelve a permitir la cámara.
               </p>
             </div>
 
@@ -156,6 +158,10 @@
               <label>
                 <span>Serial *</span>
                 <input id="serial" name="serial" type="text" inputmode="text" autocomplete="off" placeholder="Ej. 001AE8F7918F" required />
+              </label>
+              <label>
+                <span>MAC</span>
+                <input id="mac" name="mac" type="text" inputmode="text" autocomplete="off" placeholder="Ej. 2C-95-7F-5D-A5-C3" />
               </label>
               <label>
                 <span>Modelo</span>

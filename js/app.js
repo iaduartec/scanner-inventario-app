@@ -6,6 +6,7 @@ import {
   createRecord,
   downloadCsv,
   ensureRecordHistory,
+  normalizeMac,
   normalizeSerial,
   toCsv,
 } from './utils.js';
@@ -28,7 +29,7 @@ const state = {
   idEdicion: null,
   idRegistroSeleccionado: null,
   estadoObjetivoEscaneo: 'INSTALADO',
-  scanMode: initialSettings.scanMode ?? 'BARCODE',
+  scanMode: initialSettings.scanMode ?? 'SN',
   promptDiferido: null,
 };
 
@@ -36,6 +37,7 @@ const referencias = {
   botonInstalarApp: document.querySelector('#installButton'),
   botonModoQR: document.querySelector('#scanModeQrButton'),
   botonModoCodigoBarras: document.querySelector('#scanModeBarcodeButton'),
+  botonModoSN: document.querySelector('#scanModeSnButton'),
   etiquetaModoLectura: document.querySelector('#scannerModeLabel'),
   botonEscaneoEquipoInstalado: document.querySelector('#scanEquipoInstaladoButton'),
   botonEscaneoEquipoDesinstalado: document.querySelector('#scanEquipoDesinstaladoButton'),
@@ -57,6 +59,7 @@ const referencias = {
   serial: document.querySelector('#serial'),
   modelo: document.querySelector('#modelo'),
   estado: document.querySelector('#estado'),
+  mac: document.querySelector('#mac'),
   cliente: document.querySelector('#cliente'),
   ubicacion: document.querySelector('#ubicacion'),
   tecnico: document.querySelector('#tecnico'),
@@ -70,7 +73,9 @@ const referencias = {
 };
 
 function getScanModeLabel() {
-  return state.scanMode === 'QR' ? 'QR' : 'código de barras';
+  if (state.scanMode === 'QR') return 'QR';
+  if (state.scanMode === 'BARCODE') return 'código de barras';
+  return 'S/N';
 }
 
 async function setScanMode(mode) {
@@ -113,7 +118,7 @@ function getFilteredRecords() {
     .filter((record) => (state.filtro === 'TODOS' ? true : record.estado === state.filtro))
     .filter((record) => {
       if (!search) return true;
-      return [record.serial, record.modelo, record.cliente, record.tecnico, record.ubicacion]
+      return [record.serial, record.mac, record.modelo, record.cliente, record.tecnico, record.ubicacion]
         .join(' ')
         .toLowerCase()
         .includes(search);
@@ -171,8 +176,10 @@ function refreshUi() {
   updateNetworkStatus();
   referencias.botonModoQR.classList.toggle('is-active', state.scanMode === 'QR');
   referencias.botonModoCodigoBarras.classList.toggle('is-active', state.scanMode === 'BARCODE');
+  referencias.botonModoSN.classList.toggle('is-active', state.scanMode === 'SN');
   referencias.botonModoQR.setAttribute('aria-pressed', String(state.scanMode === 'QR'));
   referencias.botonModoCodigoBarras.setAttribute('aria-pressed', String(state.scanMode === 'BARCODE'));
+  referencias.botonModoSN.setAttribute('aria-pressed', String(state.scanMode === 'SN'));
 }
 
 function setScannerLabel() {
@@ -202,6 +209,7 @@ function fillForm(record) {
   state.idEdicion = record.id;
   referencias.idRegistro.value = record.id;
   referencias.serial.value = record.serial;
+  referencias.mac.value = record.mac ?? '';
   referencias.modelo.value = record.modelo;
   referencias.estado.value = record.estado;
   referencias.cliente.value = record.cliente;
@@ -245,12 +253,55 @@ function saveFormRecord(formData, source = 'manual') {
   beep(true);
 }
 
-async function handleScan(serialText) {
-  const serial = normalizeSerial(serialText);
+function getScanPayload(scanResult) {
+  if (typeof scanResult === 'string') {
+    return {
+      serial: scanResult,
+      mac: '',
+    };
+  }
+
+  return {
+    serial: scanResult?.serial ?? '',
+    mac: scanResult?.mac ?? '',
+  };
+}
+
+async function handleScan(scanResult) {
+  const payload = getScanPayload(scanResult);
+  const serial = normalizeSerial(payload.serial);
+  const mac = normalizeMac(payload.mac);
   const duplicate = findDuplicate(serial);
   toggleDuplicateAlert(referencias.alertaDuplicado, Boolean(duplicate));
 
   if (duplicate) {
+    if (mac && !duplicate.mac) {
+      const updatedRecord = createRecord(
+        {
+          ...duplicate,
+          mac,
+          fuenteCaptura: duplicate.fuenteCaptura ?? 'camara',
+        },
+        duplicate,
+      );
+      state.registros = state.registros.map((item) => (item.id === duplicate.id ? updatedRecord : item));
+      state.idRegistroSeleccionado = updatedRecord.id;
+      persistRecords();
+      updateLastCapture({
+        serialElement: referencias.serialUltimaCaptura,
+        metaElement: referencias.metaUltimaCaptura,
+        record: updatedRecord,
+      });
+      refreshUi();
+      setFeedback(
+        referencias.bandaFeedback,
+        `MAC ${mac} añadida al registro existente ${serial}.`,
+        'success',
+      );
+      beep(true);
+      return;
+    }
+
     state.idRegistroSeleccionado = duplicate.id;
     updateLastCapture({
       serialElement: referencias.serialUltimaCaptura,
@@ -265,6 +316,7 @@ async function handleScan(serialText) {
 
   const record = createRecord({
     serial,
+    mac,
     modelo: '',
     estado: state.estadoObjetivoEscaneo,
     cliente: referencias.cliente.value,
@@ -279,7 +331,13 @@ async function handleScan(serialText) {
   persistRecords();
   updateLastCapture({ serialElement: referencias.serialUltimaCaptura, metaElement: referencias.metaUltimaCaptura, record });
   refreshUi();
-  setFeedback(referencias.bandaFeedback, `Escaneo correcto: ${serial} registrado como ${record.estado}.`, 'success');
+  setFeedback(
+    referencias.bandaFeedback,
+    mac
+      ? `Escaneo correcto: ${serial} · MAC ${mac} registrado como ${record.estado}.`
+      : `Escaneo correcto: ${serial} registrado como ${record.estado}.`,
+    'success',
+  );
   beep(true);
 }
 
@@ -409,6 +467,7 @@ function setupInstallPrompt() {
 function bindEvents() {
   referencias.botonModoQR.addEventListener('click', () => setScanMode('QR'));
   referencias.botonModoCodigoBarras.addEventListener('click', () => setScanMode('BARCODE'));
+  referencias.botonModoSN.addEventListener('click', () => setScanMode('SN'));
   referencias.botonEscaneoEquipoInstalado.addEventListener('click', () => activateScanner('INSTALADO'));
   referencias.botonEscaneoEquipoDesinstalado.addEventListener('click', () => activateScanner('DESINSTALADO'));
   referencias.botonDetenerCamara.addEventListener('click', async () => {
