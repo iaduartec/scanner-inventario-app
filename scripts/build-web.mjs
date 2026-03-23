@@ -7,6 +7,7 @@ const COPY_TARGETS = [
   'index.html',
   'manifest.webmanifest',
   'sw.js',
+  'download',
   'css',
   'icons',
   'js',

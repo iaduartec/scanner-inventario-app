@@ -145,6 +145,13 @@ h4 { font-size: 1rem; }
   padding: 0.85rem 0.95rem;
   font-weight: 700;
 }
+.ghost-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  cursor: pointer;
+}
 .primary-action {
   background: linear-gradient(135deg, var(--accent), var(--accent-strong));
   color: #00111d;

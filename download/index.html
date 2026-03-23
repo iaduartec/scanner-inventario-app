@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Descargar Duartec Inventario</title>
+    <meta
+      name="description"
+      content="Página de descarga para instalar Duartec Inventario en Android fuera de Google Play."
+    />
+    <meta name="theme-color" content="#0b1220" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #020617;
+        --panel: rgba(15, 23, 42, 0.9);
+        --line: rgba(148, 163, 184, 0.18);
+        --text: #e5eefb;
+        --muted: #94a3b8;
+        --accent: #38bdf8;
+        --accent-strong: #0ea5e9;
+        --ok: #22c55e;
+        --shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+        --radius: 22px;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 34%),
+          linear-gradient(180deg, #0a1020 0%, #020617 100%);
+      }
+      a { color: inherit; text-decoration: none; }
+      .shell {
+        width: min(960px, calc(100% - 1.25rem));
+        margin: 0 auto;
+        padding: env(safe-area-inset-top, 1rem) 0 calc(env(safe-area-inset-bottom, 1rem) + 2rem);
+      }
+      .top {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+      .brand {
+        font-family: "Montserrat", Inter, sans-serif;
+        font-weight: 900;
+        letter-spacing: 0.02em;
+        font-size: clamp(1.25rem, 4vw, 1.8rem);
+      }
+      .badge {
+        padding: 0.55rem 0.8rem;
+        border-radius: 999px;
+        border: 1px solid rgba(56, 189, 248, 0.28);
+        background: rgba(56, 189, 248, 0.1);
+        color: #7dd3fc;
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+      .hero {
+        display: grid;
+        gap: 1rem;
+        padding: 1.1rem;
+        border-radius: var(--radius);
+        border: 1px solid var(--line);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+      .eyebrow {
+        margin: 0;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.74rem;
+        font-weight: 800;
+      }
+      h1 {
+        margin: 0;
+        font-family: "Montserrat", Inter, sans-serif;
+        font-size: clamp(2rem, 7vw, 3.8rem);
+        line-height: 1.02;
+      }
+      .lead {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.55;
+        max-width: 68ch;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 3.1rem;
+        padding: 0.85rem 1rem;
+        border-radius: 14px;
+        font-weight: 800;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+        color: #00111d;
+      }
+      .btn-secondary {
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid var(--line);
+        color: var(--text);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+      .card {
+        padding: 1rem;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: rgba(2, 6, 23, 0.5);
+      }
+      .card h2 {
+        margin: 0 0 0.5rem;
+        font-size: 1rem;
+      }
+      .card p, .card li {
+        color: var(--muted);
+        line-height: 1.55;
+      }
+      ul { margin: 0.5rem 0 0; padding-left: 1.1rem; }
+      code {
+        padding: 0.18rem 0.4rem;
+        border-radius: 8px;
+        background: rgba(15, 23, 42, 0.85);
+        color: #d6f4ff;
+      }
+      .footer {
+        margin-top: 1rem;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+      .checksum {
+        word-break: break-all;
+        font-size: 0.92rem;
+        color: #d6f4ff;
+      }
+      @media (max-width: 760px) {
+        .top, .grid { grid-template-columns: 1fr; display: grid; }
+        .actions { flex-direction: column; }
+        .btn { width: 100%; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <div class="top">
+        <div class="brand">Duartec Inventario</div>
+        <div class="badge">APK de descarga directa</div>
+      </div>
+
+      <section class="hero">
+        <p class="eyebrow">Instalación Android</p>
+        <h1>Descarga la app para instalarla fuera de Google Play</h1>
+        <p class="lead">
+          Usa este APK firmado para instalar Duartec Inventario desde tu propia web o compartirlo por enlace.
+          En Android, activa la instalación desde fuentes desconocidas si el navegador te lo pide.
+        </p>
+
+        <div class="actions">
+          <a class="btn btn-primary" href="https://github.com/iaduartec/scanner-inventario-app/releases/download/v1.2.0/app-release.apk">
+            Descargar APK
+          </a>
+          <a class="btn btn-secondary" href="https://github.com/iaduartec/scanner-inventario-app/releases/tag/v1.2.0">
+            Ver release
+          </a>
+        </div>
+
+        <div class="grid">
+          <div class="card">
+            <h2>Verificación</h2>
+            <p class="checksum">SHA-256: 8224a90769787f3442d23e1ed5ad44bd718180be793847b485f55980e88b3c6d</p>
+            <p>Comprueba este hash antes de distribuir el APK en equipos de campo.</p>
+          </div>
+          <div class="card">
+            <h2>Instalación</h2>
+            <ul>
+              <li>Descarga el APK desde Chrome o el navegador del dispositivo.</li>
+              <li>Permite la instalación de apps desconocidas si Android lo solicita.</li>
+              <li>Abre el archivo descargado y confirma la instalación.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Notas de publicación</h2>
+          <ul>
+            <li>El APK está firmado y listo para distribución directa.</li>
+            <li>El AAB sigue disponible para Play Store si lo necesitas más adelante.</li>
+            <li>La app requiere cámara para escaneo y funciona offline tras la primera carga.</li>
+          </ul>
+        </div>
+
+        <p class="footer">
+          Si vas a publicar tu propia versión desde Vercel, cambia el enlace del APK por tu artefacto final o un release nuevo.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

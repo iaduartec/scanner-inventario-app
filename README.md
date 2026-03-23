@@ -197,6 +197,10 @@ Cada registro contiene:
 
 > Si GitHub Pages sirve el sitio en subruta, comprueba que `start_url` y recursos relativos sigan cargando correctamente. Esta versión usa rutas relativas (`./`) para facilitarlo.
 
+## Página de descarga
+
+La ruta [`/download/`](./download/) muestra una landing directa para bajar el APK firmado desde la release de GitHub, con SHA-256 e instrucciones de instalación para Android.
+
 ## Datos demo
 
 Puedes usar el botón **Cargar demo** para poblar el inventario con seriales de ejemplo.
