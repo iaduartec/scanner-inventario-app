@@ -5,7 +5,7 @@ Aplicación web instalable (PWA) para técnicos de Duartec que necesitan escanea
 ## Resumen
 
 - Mobile-first, pensada para iPhone y Android.
-- Escaneo con cámara usando `html5-qrcode` para QR y códigos de barras, más OCR para leer `S/N` y `MAC` impresos.
+- Escaneo con cámara usando `html5-qrcode` para QR y códigos de barras, más OCR para leer `S/N`, `MAC` y `modelo` impresos.
 - Guardado local persistente en `localStorage`.
 - Funciona offline tras la primera carga gracias a `service worker`.
 - Exportación CSV compatible con Excel (BOM UTF-8 + separador `;`).
@@ -17,7 +17,7 @@ Aplicación web instalable (PWA) para técnicos de Duartec que necesitan escanea
 - Se añade panel de detalle del serial seleccionado.
 - Cada alta/edición guarda historial de movimientos por equipo.
 - Los registros antiguos se migran en memoria para no perder compatibilidad con `localStorage`.
-- Se añade lectura OCR para `S/N` y `MAC` cuando el barcode de la caja devuelve `Ref` en vez del serial útil.
+- Se añade lectura OCR para `S/N`, `MAC` y `modelo` cuando el barcode de la caja devuelve `Ref` en vez del serial útil.
 
 
 ### FASE 1 completada
@@ -97,7 +97,7 @@ Sirve la carpeta raíz del repositorio como sitio estático.
 2. Elige el modo de lectura:
    - `QR`
    - `Código de barras`
-   - `S/N` para leer el serial y el `MAC` impresos cuando la etiqueta también trae un `Ref`
+   - `S/N` para leer el serial, el `MAC` y el `modelo` impresos cuando la etiqueta también trae un `Ref`
 3. Apunta la cámara al código o a la línea `S/N`.
 4. Revisa el feedback visual/sonoro.
 5. Completa o corrige datos en el formulario si hace falta.

@@ -258,12 +258,14 @@ function getScanPayload(scanResult) {
     return {
       serial: scanResult,
       mac: '',
+      modelo: '',
     };
   }
 
   return {
     serial: scanResult?.serial ?? '',
     mac: scanResult?.mac ?? '',
+    modelo: scanResult?.modelo ?? '',
   };
 }
 
@@ -271,15 +273,27 @@ async function handleScan(scanResult) {
   const payload = getScanPayload(scanResult);
   const serial = normalizeSerial(payload.serial);
   const mac = normalizeMac(payload.mac);
+  const modelo = String(payload.modelo ?? '').trim();
   const duplicate = findDuplicate(serial);
   toggleDuplicateAlert(referencias.alertaDuplicado, Boolean(duplicate));
 
   if (duplicate) {
+    const cambios = [];
+
     if (mac && !duplicate.mac) {
+      cambios.push(`MAC ${mac}`);
+    }
+
+    if (modelo && !duplicate.modelo) {
+      cambios.push(`modelo ${modelo}`);
+    }
+
+    if (cambios.length) {
       const updatedRecord = createRecord(
         {
           ...duplicate,
           mac,
+          modelo: modelo || duplicate.modelo,
           fuenteCaptura: duplicate.fuenteCaptura ?? 'camara',
         },
         duplicate,
@@ -293,11 +307,7 @@ async function handleScan(scanResult) {
         record: updatedRecord,
       });
       refreshUi();
-      setFeedback(
-        referencias.bandaFeedback,
-        `MAC ${mac} añadida al registro existente ${serial}.`,
-        'success',
-      );
+      setFeedback(referencias.bandaFeedback, `${cambios.join(' y ')} añadido${cambios.length > 1 ? 's' : ''} al registro existente ${serial}.`, 'success');
       beep(true);
       return;
     }
@@ -317,7 +327,7 @@ async function handleScan(scanResult) {
   const record = createRecord({
     serial,
     mac,
-    modelo: '',
+    modelo,
     estado: state.estadoObjetivoEscaneo,
     cliente: referencias.cliente.value,
     ubicacion: referencias.ubicacion.value,
@@ -333,9 +343,13 @@ async function handleScan(scanResult) {
   refreshUi();
   setFeedback(
     referencias.bandaFeedback,
-    mac
-      ? `Escaneo correcto: ${serial} · MAC ${mac} registrado como ${record.estado}.`
-      : `Escaneo correcto: ${serial} registrado como ${record.estado}.`,
+    [
+      `Escaneo correcto: ${serial}`,
+      mac ? `MAC ${mac}` : null,
+      modelo ? `modelo ${modelo}` : null,
+    ]
+      .filter(Boolean)
+      .join(' · ') + ` registrado como ${record.estado}.`,
     'success',
   );
   beep(true);

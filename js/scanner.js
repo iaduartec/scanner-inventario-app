@@ -1,4 +1,4 @@
-import { normalizeMac, normalizeSerial } from './utils.js';
+import { normalizeMac, normalizeSerial, normalizeText } from './utils.js';
 
 const BARCODE_FORMATS = [
   Html5QrcodeSupportedFormats.CODE_128,
@@ -15,6 +15,10 @@ const BARCODE_FORMATS = [
 const OCR_SERIAL_PATTERNS = [
   /S\s*\/\s*N\s*[:\-]?\s*([A-Z0-9][A-Z0-9-]{4,})/i,
   /\bSN\s*[:\-]?\s*([A-Z0-9][A-Z0-9-]{4,})/i,
+];
+
+const OCR_MODEL_PATTERNS = [
+  /(?:MODEL|MODELO)\s*[:\-]?\s*(.+)/i,
 ];
 
 const OCR_MAC_PATTERNS = [
@@ -131,6 +135,41 @@ function extractMacFromOcr(text) {
         const match = merged.match(pattern);
         if (match?.[1]) {
           return normalizeMac(match[1]);
+        }
+      }
+    }
+  }
+
+  return '';
+}
+
+function extractModelFromOcr(text) {
+  const normalizedText = normalizeOcrText(text);
+  const lines = normalizedText
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const candidates = [...lines, normalizedText.replace(/\s+/g, ' ')];
+
+  for (const candidate of candidates) {
+    for (const pattern of OCR_MODEL_PATTERNS) {
+      const match = candidate.match(pattern);
+      if (match?.[1]) {
+        return normalizeText(match[1].replace(/\s+/g, ' '));
+      }
+    }
+  }
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const current = lines[index].replace(/\s+/g, ' ');
+    if (/MODEL|MODELO/i.test(current)) {
+      const nextLine = lines[index + 1] ?? '';
+      const merged = `${current} ${nextLine}`.trim();
+      for (const pattern of OCR_MODEL_PATTERNS) {
+        const match = merged.match(pattern);
+        if (match?.[1]) {
+          return normalizeText(match[1].replace(/\s+/g, ' '));
         }
       }
     }
@@ -277,10 +316,11 @@ async function startOcrScanner({ elementId, onScan, onError }) {
       const text = result?.data?.text ?? '';
       const serial = extractSerialFromOcr(text);
       const mac = extractMacFromOcr(text);
+      const modelo = extractModelFromOcr(text);
 
       if (serial) {
         await stopScanner();
-        await Promise.resolve(onScan({ serial, mac, rawText: text }));
+        await Promise.resolve(onScan({ serial, mac, modelo, rawText: text }));
         return;
       }
     } catch (error) {
