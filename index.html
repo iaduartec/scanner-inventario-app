@@ -43,6 +43,11 @@
             <span id="connectionBadge" class="badge badge-muted">Sincronía local</span>
           </div>
 
+          <div class="scan-mode-switch" role="tablist" aria-label="Modo de lectura">
+            <button id="scanModeQrButton" class="mode-chip" type="button">QR</button>
+            <button id="scanModeBarcodeButton" class="mode-chip" type="button">Código de barras</button>
+          </div>
+
           <div class="quick-actions" role="group" aria-label="Acciones principales de escaneo">
             <button id="scanEquipoInstaladoButton" class="primary-action" type="button">Escanear equipo instalado</button>
             <button id="scanEquipoDesinstaladoButton" class="secondary-action" type="button">Escanear equipo desinstalado</button>
@@ -53,7 +58,7 @@
               <div class="scanner-toolbar">
                 <div>
                   <p class="scanner-status-label">Estado de captura</p>
-                  <strong id="scannerModeLabel">Cámara inactiva</strong>
+                  <strong id="scannerModeLabel">Cámara inactiva · código de barras</strong>
                 </div>
                 <button id="stopScannerButton" class="ghost-button" type="button">Detener cámara</button>
               </div>

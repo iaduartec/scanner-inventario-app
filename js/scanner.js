@@ -26,7 +26,35 @@ function getBarcodeFormatsToSupport() {
   return supported.length ? supported : undefined;
 }
 
-export async function startScanner({ elementId, onScan, onError }) {
+function getScanConfiguration(scanMode) {
+  const formats = window.Html5QrcodeSupportedFormats;
+  if (!formats) return {};
+
+  if (scanMode === 'QR') {
+    return {
+      qrbox: { width: 260, height: 260 },
+      aspectRatio: 1,
+      formatsToSupport: [formats.QR_CODE],
+      disableFlip: false,
+    };
+  }
+
+  return {
+    qrbox: (viewfinderWidth, viewfinderHeight) => {
+      const width = Math.min(420, Math.floor(viewfinderWidth * 0.9));
+      const height = Math.min(180, Math.floor(viewfinderHeight * 0.22));
+      return { width, height: Math.max(120, height) };
+    },
+    aspectRatio: 1.6,
+    formatsToSupport: getBarcodeFormatsToSupport(),
+    experimentalFeatures: {
+      useBarCodeDetectorIfSupported: true,
+    },
+    disableFlip: true,
+  };
+}
+
+export async function startScanner({ elementId, scanMode = 'BARCODE', onScan, onError }) {
   if (!window.Html5Qrcode) {
     throw new Error('No se pudo cargar la librería html5-qrcode.');
   }
@@ -40,22 +68,13 @@ export async function startScanner({ elementId, onScan, onError }) {
   }
 
   try {
+    const scanConfiguration = getScanConfiguration(scanMode);
     await scannerState.instance.start(
       { facingMode: 'environment' },
       {
         fps: 10,
-        qrbox: (viewfinderWidth, viewfinderHeight) => {
-          const width = Math.min(420, Math.floor(viewfinderWidth * 0.9));
-          const height = Math.min(180, Math.floor(viewfinderHeight * 0.22));
-          return { width, height: Math.max(120, height) };
-        },
-        aspectRatio: 1.6,
-        formatsToSupport: getBarcodeFormatsToSupport(),
-        experimentalFeatures: {
-          useBarCodeDetectorIfSupported: true,
-        },
-        disableFlip: true,
         rememberLastUsedCamera: true,
+        ...scanConfiguration,
       },
       onScan,
       () => {},

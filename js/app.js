@@ -19,6 +19,8 @@ import {
   updateLastCapture,
 } from './ui.js';
 
+const initialSettings = loadSettings();
+
 const state = {
   registros: loadRecords().map(ensureRecordHistory),
   filtro: 'TODOS',
@@ -26,11 +28,15 @@ const state = {
   idEdicion: null,
   idRegistroSeleccionado: null,
   estadoObjetivoEscaneo: 'INSTALADO',
+  scanMode: initialSettings.scanMode ?? 'BARCODE',
   promptDiferido: null,
 };
 
 const referencias = {
   botonInstalarApp: document.querySelector('#installButton'),
+  botonModoQR: document.querySelector('#scanModeQrButton'),
+  botonModoCodigoBarras: document.querySelector('#scanModeBarcodeButton'),
+  etiquetaModoLectura: document.querySelector('#scannerModeLabel'),
   botonEscaneoEquipoInstalado: document.querySelector('#scanEquipoInstaladoButton'),
   botonEscaneoEquipoDesinstalado: document.querySelector('#scanEquipoDesinstaladoButton'),
   botonDetenerCamara: document.querySelector('#stopScannerButton'),
@@ -62,6 +68,22 @@ const referencias = {
   botonCargarDemo: document.querySelector('#loadDemoButton'),
   panelDetalle: document.querySelector('#detailPanel'),
 };
+
+function getScanModeLabel() {
+  return state.scanMode === 'QR' ? 'QR' : 'código de barras';
+}
+
+async function setScanMode(mode) {
+  if (state.scanMode === mode) return;
+  state.scanMode = mode;
+  saveSettings({ ...loadSettings(), scanMode: mode });
+  if (isScannerActive()) {
+    await stopScanner();
+  }
+  setScannerLabel();
+  refreshUi();
+  setFeedback(referencias.bandaFeedback, `Modo de lectura cambiado a ${getScanModeLabel()}.`, 'info');
+}
 
 function beep(success = true) {
   try {
@@ -147,12 +169,16 @@ function refreshUi() {
     equipoDesinstaladoCount: referencias.contadorEquiposDesinstalados,
   });
   updateNetworkStatus();
+  referencias.botonModoQR.classList.toggle('is-active', state.scanMode === 'QR');
+  referencias.botonModoCodigoBarras.classList.toggle('is-active', state.scanMode === 'BARCODE');
+  referencias.botonModoQR.setAttribute('aria-pressed', String(state.scanMode === 'QR'));
+  referencias.botonModoCodigoBarras.setAttribute('aria-pressed', String(state.scanMode === 'BARCODE'));
 }
 
 function setScannerLabel() {
   referencias.etiquetaModoEscaneo.textContent = isScannerActive()
-    ? `Cámara activa · alta ${state.estadoObjetivoEscaneo}`
-    : 'Cámara inactiva';
+    ? `Cámara activa · ${getScanModeLabel()} · alta ${state.estadoObjetivoEscaneo}`
+    : `Cámara inactiva · ${getScanModeLabel()}`;
 }
 
 function updateNetworkStatus() {
@@ -266,13 +292,14 @@ async function activateScanner(estadoObjetivo) {
   try {
     await startScanner({
       elementId: 'reader',
+      scanMode: state.scanMode,
       onScan: (decodedText) => handleScan(decodedText),
       onError: () => {},
     });
     setScannerLabel();
     setFeedback(
       referencias.bandaFeedback,
-      `Cámara lista para registrar equipos en estado ${estadoObjetivo}.`,
+      `Cámara lista para registrar equipos en estado ${estadoObjetivo} usando ${getScanModeLabel()}.`,
       'info',
     );
   } catch (error) {
@@ -380,6 +407,8 @@ function setupInstallPrompt() {
 }
 
 function bindEvents() {
+  referencias.botonModoQR.addEventListener('click', () => setScanMode('QR'));
+  referencias.botonModoCodigoBarras.addEventListener('click', () => setScanMode('BARCODE'));
   referencias.botonEscaneoEquipoInstalado.addEventListener('click', () => activateScanner('INSTALADO'));
   referencias.botonEscaneoEquipoDesinstalado.addEventListener('click', () => activateScanner('DESINSTALADO'));
   referencias.botonDetenerCamara.addEventListener('click', async () => {

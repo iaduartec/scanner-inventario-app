@@ -96,6 +96,25 @@ h4 { font-size: 1rem; }
   font-weight: 700;
 }
 .badge-muted { background: rgba(56, 189, 248, 0.12); color: #7dd3fc; }
+.scan-mode-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+.mode-chip {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.7);
+  color: var(--text);
+  padding: 0.7rem 0.85rem;
+  font-weight: 700;
+}
+.mode-chip.is-active {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(125, 211, 252, 0.45);
+  color: #d6f4ff;
+}
 .quick-actions {
   display: grid;
   grid-template-columns: 1fr;
@@ -278,6 +297,9 @@ label span { font-weight: 600; }
   }
   .hero-header, .section-header, .scanner-toolbar, .toolbar, .detail-header, .history-item-header {
     align-items: flex-start;
+  }
+  .scan-mode-switch {
+    grid-template-columns: 1fr;
   }
   .header-actions, .form-actions { flex-direction: column; }
   .header-actions > *, .form-actions > * { width: 100%; }
