@@ -66,6 +66,35 @@ function getScannerConfig(scanMode) {
   };
 }
 
+async function getPreferredBarcodeCameraConfig() {
+  if (typeof globalThis.Html5Qrcode?.getCameras !== 'function') {
+    return [{ facingMode: { ideal: 'environment' } }];
+  }
+
+  try {
+    const cameras = await globalThis.Html5Qrcode.getCameras();
+    if (!Array.isArray(cameras) || !cameras.length) {
+      return [{ facingMode: { ideal: 'environment' } }];
+    }
+
+    const preferredCamera = cameras.find((camera) =>
+      /back|rear|environment|trasera|posterior/i.test(camera.label ?? ''),
+    ) ?? cameras[0];
+
+    const preferredConfig = preferredCamera?.id
+      ? { deviceId: { exact: preferredCamera.id } }
+      : { facingMode: { ideal: 'environment' } };
+
+    return [
+      { facingMode: { ideal: 'environment' } },
+      preferredConfig,
+      { facingMode: 'environment' },
+    ];
+  } catch {
+    return [{ facingMode: { ideal: 'environment' } }];
+  }
+}
+
 function normalizeOcrText(text) {
   return String(text ?? '')
     .replace(/\u00A0/g, ' ')
@@ -192,16 +221,26 @@ async function startBarcodeScanner({ elementId, scanMode, onScan, onError }) {
     await Promise.resolve(onScan(decodedText));
   };
 
+  const cameraConfigs = await getPreferredBarcodeCameraConfig();
+  let lastError = null;
+
   try {
-    await html5Qrcode.start(
-      { facingMode: 'environment' },
-      getScannerConfig(scanMode),
-      successCallback,
-      onError,
-    );
+    for (const cameraConfig of cameraConfigs) {
+      try {
+        await html5Qrcode.start(cameraConfig, getScannerConfig(scanMode), successCallback, onError);
+        lastError = null;
+        break;
+      } catch (error) {
+        lastError = error;
+      }
+    }
   } catch (error) {
+    lastError = error;
+  }
+
+  if (lastError) {
     clearContainer(container);
-    throw error;
+    throw lastError;
   }
 
   activeScanner = {
@@ -216,6 +255,26 @@ function ensureCanvas(width, height) {
   canvas.width = width;
   canvas.height = height;
   return canvas;
+}
+
+async function getRearCameraStream() {
+  const preferredConstraints = {
+    audio: false,
+    video: {
+      facingMode: { ideal: 'environment' },
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+    },
+  };
+
+  try {
+    return await navigator.mediaDevices.getUserMedia(preferredConstraints);
+  } catch {
+    return navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: true,
+    });
+  }
 }
 
 function stopMediaStream(stream) {
@@ -246,14 +305,7 @@ async function startOcrScanner({ elementId, onScan, onError }) {
   frame.append(video, overlay);
   container.append(frame);
 
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: false,
-    video: {
-      facingMode: { ideal: 'environment' },
-      width: { ideal: 1920 },
-      height: { ideal: 1080 },
-    },
-  });
+  const stream = await getRearCameraStream();
 
   video.srcObject = stream;
   await video.play();

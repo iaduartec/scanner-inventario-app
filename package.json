@@ -1,10 +1,25 @@
 {
   "name": "duartec-inventario-pwa",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "scripts": {
+    "build:web": "node scripts/build-web.mjs",
+    "cap:sync": "npm run build:web && npx cap sync",
+    "cap:sync:android": "npm run build:web && npx cap sync android",
+    "cap:sync:ios": "npm run build:web && npx cap sync ios",
     "test": "node --test tests/*.test.js",
     "check": "node --check js/app.js && node --check js/scanner.js && node --check js/storage.js && node --check js/ui.js && node --check js/utils.js"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/device": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.0"
   }
 }

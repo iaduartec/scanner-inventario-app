@@ -1,0 +1,10 @@
+{
+  "appId": "com.duartec.inventario",
+  "appName": "Duartec Inventario",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "npmClient": "npm",
+  "server": {
+    "androidScheme": "https"
+  }
+}

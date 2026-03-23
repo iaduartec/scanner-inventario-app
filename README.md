@@ -2,6 +2,8 @@
 
 Aplicación web instalable (PWA) para técnicos de Duartec que necesitan escanear seriales de teléfonos/equipos en campo, registrar su estado y exportar inventario sin depender de backend.
 
+También incluye wrapper nativo con Capacitor para Android e iOS, pensado para generar APK/AAB e IPA desde el mismo código base web.
+
 ## Resumen
 
 - Mobile-first, pensada para iPhone y Android.
@@ -90,6 +92,39 @@ Sirve la carpeta raíz del repositorio como sitio estático.
 1. Abre la URL en Chrome.
 2. Usa el botón **Instalar app** o el menú del navegador.
 3. Acepta permisos de cámara.
+4. Si el dispositivo ofrece varios navegadores, Chrome o Samsung Internet suelen dar mejor soporte de instalación PWA.
+
+## Versión nativa
+
+El repositorio incluye proyectos Capacitor en `android/` e `ios/`.
+
+### Comandos útiles
+
+```bash
+npm run build:web
+npx cap sync android
+npx cap sync ios
+```
+
+### Abrir proyectos
+
+```bash
+npx cap open android
+npx cap open ios
+```
+
+### Publicación
+
+- Android: genera un `AAB` desde Android Studio para Play Store.
+- iOS: genera un `IPA` desde Xcode en macOS para App Store.
+- Necesitas cuentas de publicación de Google Play y Apple Developer, además de firma y assets de tienda.
+
+### Firma Android
+
+1. Copia `android/keystore.properties.example` a `android/keystore.properties`.
+2. Rellena `storeFile`, `storePassword`, `keyAlias` y `keyPassword`.
+3. Mantén el `.jks` fuera del repositorio.
+4. Ejecuta `npx cap sync android` y luego compila el `AAB` firmado desde Android Studio.
 
 ## Cómo usar
 
@@ -161,9 +196,11 @@ También se incluye un CSV de muestra en `examples/export-ejemplo.csv`.
 
 - La calidad del escaneo depende de permisos, luz y enfoque del dispositivo.
 - iOS/Safari puede requerir reintentar permisos tras instalar la PWA.
+- Android puede necesitar que el navegador tenga permisos de cámara activos para la pestaña o la app instalada.
 - Sin backend, los datos permanecen en el navegador/dispositivo actual.
 - La librería de escaneo depende de CDN en la primera carga online. Una vez cacheada, la app propia sí puede abrir offline, pero el CDN puede requerir mejora futura si se desea independencia total.
 - El modo `S/N` depende de OCR y necesita mejor luz y encuadre que un barcode convencional.
+- El wrapper nativo sigue consumiendo las librerías de escaneo/OCR desde CDN; para una publicación más rígida en tiendas, conviene vendorizarlas en un siguiente paso.
 
 ## Preparación para Google Sheets (siguiente iteración)
 

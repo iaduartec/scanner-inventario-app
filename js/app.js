@@ -20,6 +20,7 @@ import {
   updateLastCapture,
 } from './ui.js';
 
+const isNativePlatform = Boolean(globalThis.Capacitor?.isNativePlatform?.());
 const initialSettings = loadSettings();
 
 const state = {
@@ -190,6 +191,11 @@ function setScannerLabel() {
 
 function updateNetworkStatus() {
   const online = navigator.onLine;
+  if (isNativePlatform) {
+    referencias.insigniaConexion.textContent = `App nativa · v${APP_VERSION}`;
+    return;
+  }
+
   referencias.insigniaConexion.textContent = online
     ? `Local + offline · v${APP_VERSION}`
     : `Sin conexión · modo offline · v${APP_VERSION}`;
@@ -455,6 +461,8 @@ function clearRecords() {
 }
 
 function registerServiceWorker() {
+  if (isNativePlatform) return;
+
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {
       setFeedback(referencias.bandaFeedback, 'No se pudo registrar el modo offline.', 'error');
@@ -463,6 +471,11 @@ function registerServiceWorker() {
 }
 
 function setupInstallPrompt() {
+  if (isNativePlatform) {
+    referencias.botonInstalarApp.classList.add('hidden');
+    return;
+  }
+
   window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
     state.promptDiferido = event;
@@ -535,6 +548,10 @@ function init() {
   refreshUi();
   resetForm();
   setScannerLabel();
+
+  if (isNativePlatform) {
+    referencias.botonInstalarApp.classList.add('hidden');
+  }
 
   updateLastCapture({
     serialElement: referencias.serialUltimaCaptura,

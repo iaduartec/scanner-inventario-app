@@ -2,11 +2,16 @@
   "name": "Duartec Inventario",
   "short_name": "Duartec",
   "description": "PWA de inventario para escanear seriales, registrar estados y exportar CSV en campo.",
+  "id": "./",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
   "background_color": "#020617",
   "theme_color": "#0b1220",
   "lang": "es",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "icons/icon-192.png",

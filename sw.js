@@ -1,4 +1,4 @@
-const CACHE_NAME = 'duartec-inventario-v1';
+const CACHE_NAME = 'duartec-inventario-v2';
 const ASSETS = [
   './',
   './index.html',
