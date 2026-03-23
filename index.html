@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Duartec Inventario</title>
+    <meta
+      name="description"
+      content="PWA de inventario móvil-first para escanear seriales, registrar estados y exportar inventario en campo."
+    />
+    <meta name="theme-color" content="#0b1220" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Duartec" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icons/icon.svg" />
+    <link rel="stylesheet" href="css/styles.css" />
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
+    <script type="module" src="js/app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Duartec</p>
+          <h1>Inventario en campo</h1>
+          <p class="subtle">Escanea seriales, registra estado y exporta inventario incluso sin conexión.</p>
+        </div>
+        <button id="installButton" class="ghost-button hidden" type="button">Instalar app</button>
+      </header>
+
+      <main class="layout">
+        <section class="card hero-card" aria-labelledby="acciones-rapidas-title">
+          <div class="hero-header">
+            <div>
+              <p class="eyebrow">Alta rápida</p>
+              <h2 id="acciones-rapidas-title">Escaneo operativo</h2>
+            </div>
+            <span id="connectionBadge" class="badge badge-muted">Sincronía local</span>
+          </div>
+
+          <div class="quick-actions" role="group" aria-label="Acciones principales de escaneo">
+            <button id="scanInstalledButton" class="primary-action" type="button">Escanear INSTALADO</button>
+            <button id="scanReserveButton" class="secondary-action" type="button">Escanear RESERVA</button>
+          </div>
+
+          <div class="scan-layout">
+            <div class="scanner-panel">
+              <div class="scanner-toolbar">
+                <div>
+                  <p class="scanner-status-label">Estado de captura</p>
+                  <strong id="scannerModeLabel">Cámara inactiva</strong>
+                </div>
+                <button id="stopScannerButton" class="ghost-button" type="button">Detener cámara</button>
+              </div>
+              <div id="reader" class="reader" aria-live="polite"></div>
+              <p class="hint">
+                En iPhone usa Safari y acepta permisos de cámara. Si no aparece imagen, recarga la PWA y vuelve a permitir la cámara.
+              </p>
+            </div>
+
+            <aside class="scan-sidebar">
+              <div class="card inset-card status-card">
+                <p class="eyebrow">Última captura</p>
+                <strong id="lastSerial">Sin lecturas todavía</strong>
+                <p id="lastCaptureMeta" class="subtle compact">Esperando el primer escaneo o alta manual.</p>
+              </div>
+
+              <div id="duplicateAlert" class="alert hidden" role="alert" aria-live="assertive">
+                <strong>Serial duplicado detectado</strong>
+                <p>Ya existe un registro con este serial. Revísalo antes de continuar.</p>
+              </div>
+
+              <div id="feedbackBanner" class="feedback-banner hidden" role="status" aria-live="polite"></div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="card form-card" aria-labelledby="manual-form-title">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Captura manual</p>
+              <h2 id="manual-form-title">Alta y edición de registros</h2>
+            </div>
+          </div>
+
+          <form id="inventoryForm" class="inventory-form">
+            <input id="recordId" name="recordId" type="hidden" />
+            <div class="field-grid">
+              <label>
+                <span>Serial *</span>
+                <input id="serial" name="serial" type="text" inputmode="text" autocomplete="off" placeholder="Ej. 001AE8F7918F" required />
+              </label>
+              <label>
+                <span>Modelo</span>
+                <input id="modelo" name="modelo" type="text" autocomplete="off" placeholder="Modelo del equipo" />
+              </label>
+              <label>
+                <span>Estado *</span>
+                <select id="estado" name="estado" required>
+                  <option value="INSTALADO">INSTALADO</option>
+                  <option value="RESERVA">RESERVA</option>
+                  <option value="RETIRADO">RETIRADO</option>
+                  <option value="AVERIADO">AVERIADO</option>
+                </select>
+              </label>
+              <label>
+                <span>Cliente</span>
+                <input id="cliente" name="cliente" type="text" autocomplete="organization" placeholder="Cliente / proyecto" />
+              </label>
+              <label>
+                <span>Ubicación</span>
+                <input id="ubicacion" name="ubicacion" type="text" autocomplete="street-address" placeholder="Planta, rack o dirección" />
+              </label>
+              <label>
+                <span>Técnico</span>
+                <input id="tecnico" name="tecnico" type="text" autocomplete="name" placeholder="Nombre del técnico" />
+              </label>
+              <label class="field-full">
+                <span>Observaciones</span>
+                <textarea id="observaciones" name="observaciones" rows="3" placeholder="Notas útiles del equipo, incidencia o instalación"></textarea>
+              </label>
+            </div>
+
+            <div class="form-actions">
+              <button id="saveButton" class="primary-action" type="submit">Guardar registro</button>
+              <button id="cancelEditButton" class="ghost-button hidden" type="button">Cancelar edición</button>
+              <button id="loadDemoButton" class="ghost-button" type="button">Cargar demo</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card filters-card" aria-labelledby="inventario-title">
+          <div class="section-header inventory-header">
+            <div>
+              <p class="eyebrow">Inventario</p>
+              <h2 id="inventario-title">Registros guardados</h2>
+            </div>
+            <div class="header-actions">
+              <button id="exportButton" class="ghost-button" type="button">Exportar CSV</button>
+              <button id="clearAllButton" class="ghost-button danger-text" type="button">Vaciar demo/local</button>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <label class="search-field">
+              <span class="sr-only">Buscar por serial</span>
+              <input id="searchInput" type="search" placeholder="Buscar por serial, modelo, cliente o técnico" />
+            </label>
+            <div id="filterChips" class="filter-chips" role="tablist" aria-label="Filtrar por estado"></div>
+          </div>
+
+          <div class="summary-row">
+            <span id="recordCount">0 registros</span>
+            <span id="installedCount">0 instalados</span>
+            <span id="reserveCount">0 reserva</span>
+            <span id="offlineReady">Modo offline listo</span>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="inventory-table">
+              <thead>
+                <tr>
+                  <th>Serial</th>
+                  <th>Estado</th>
+                  <th>Modelo</th>
+                  <th>Cliente</th>
+                  <th>Ubicación</th>
+                  <th>Técnico</th>
+                  <th>Fecha</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="inventoryTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

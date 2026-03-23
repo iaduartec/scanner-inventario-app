@@ -1,0 +1,3 @@
+﻿id;serial;modelo;estado;cliente;ubicacion;tecnico;fechaAlta;fechaUltimoMovimiento;observaciones;fuenteCaptura
+"demo-1";"001AE8F7918F";"iPhone 13 128GB";"INSTALADO";"Hotel Costa Norte";"Lobby - Rack principal";"Luis Duarte";"2026-03-20T09:10:00.000Z";"2026-03-20T09:10:00.000Z";"Equipo operativo y entregado a recepción.";"camara"
+"demo-2";"001AE8F79C13";"Samsung Galaxy A54";"RESERVA";"Clínica Central";"Almacén móvil";"Ana Pérez";"2026-03-21T14:30:00.000Z";"2026-03-21T14:30:00.000Z";"Pendiente de instalación en próxima visita.";"manual"
