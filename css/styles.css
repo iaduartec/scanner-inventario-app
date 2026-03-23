@@ -50,6 +50,23 @@ textarea { resize: vertical; }
   gap: 1rem;
   padding: 0.5rem 0 0.9rem;
 }
+.brand-block {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 520px;
+}
+.brand-logo {
+  width: min(430px, 100%);
+  height: auto;
+  display: block;
+  color: var(--text);
+}
+.topbar-note {
+  color: var(--muted);
+  line-height: 1.45;
+  font-size: 0.95rem;
+  max-width: 58ch;
+}
 .layout {
   display: grid;
   gap: 0.85rem;
@@ -294,6 +311,12 @@ label span { font-weight: 600; }
     flex-direction: column;
     align-items: stretch;
     padding-top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
+  }
+  .brand-block {
+    max-width: none;
+  }
+  .brand-logo {
+    width: min(100%, 360px);
   }
   .hero-header, .section-header, .scanner-toolbar, .toolbar, .detail-header, .history-item-header {
     align-items: flex-start;
