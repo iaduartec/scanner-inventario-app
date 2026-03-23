@@ -11,6 +11,20 @@ export const demoRecords = [
     fechaUltimoMovimiento: '2026-03-20T09:10:00.000Z',
     observaciones: 'Equipo operativo y entregado a recepción.',
     fuenteCaptura: 'camara',
+    historial: [
+      {
+        id: 'demo-1-mov-1',
+        tipo: 'alta',
+        estado: 'INSTALADO',
+        modelo: 'iPhone 13 128GB',
+        cliente: 'Hotel Costa Norte',
+        ubicacion: 'Lobby - Rack principal',
+        tecnico: 'Luis Duarte',
+        observaciones: 'Equipo operativo y entregado a recepción.',
+        fuenteCaptura: 'camara',
+        fecha: '2026-03-20T09:10:00.000Z',
+      },
+    ],
   },
   {
     id: 'demo-2',
@@ -24,6 +38,20 @@ export const demoRecords = [
     fechaUltimoMovimiento: '2026-03-21T14:30:00.000Z',
     observaciones: 'Pendiente de instalación en próxima visita.',
     fuenteCaptura: 'manual',
+    historial: [
+      {
+        id: 'demo-2-mov-1',
+        tipo: 'alta',
+        estado: 'RESERVA',
+        modelo: 'Samsung Galaxy A54',
+        cliente: 'Clínica Central',
+        ubicacion: 'Almacén móvil',
+        tecnico: 'Ana Pérez',
+        observaciones: 'Pendiente de instalación en próxima visita.',
+        fuenteCaptura: 'manual',
+        fecha: '2026-03-21T14:30:00.000Z',
+      },
+    ],
   },
   {
     id: 'demo-3',
@@ -37,5 +65,19 @@ export const demoRecords = [
     fechaUltimoMovimiento: '2026-03-22T11:45:00.000Z',
     observaciones: 'No enciende tras corte eléctrico.',
     fuenteCaptura: 'camara',
+    historial: [
+      {
+        id: 'demo-3-mov-1',
+        tipo: 'alta',
+        estado: 'AVERIADO',
+        modelo: 'Motorola G84',
+        cliente: 'Residencial Laguna',
+        ubicacion: 'Caja técnica exterior',
+        tecnico: 'Marta León',
+        observaciones: 'No enciende tras corte eléctrico.',
+        fuenteCaptura: 'camara',
+        fecha: '2026-03-22T11:45:00.000Z',
+      },
+    ],
   },
 ];

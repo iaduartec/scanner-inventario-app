@@ -13,6 +13,12 @@ Aplicación web instalable (PWA) para técnicos de Duartec que necesitan escanea
 
 ## Estado de esta iteración
 
+### FASE 3 iniciada
+- Se añade panel de detalle del serial seleccionado.
+- Cada alta/edición guarda historial de movimientos por equipo.
+- Los registros antiguos se migran en memoria para no perder compatibilidad con `localStorage`.
+
+
 ### FASE 1 completada
 - Refactor completo desde un repositorio casi vacío hacia una estructura modular estática.
 - UI base profesional en dark mode, con acciones grandes y layout mobile-first.
@@ -150,7 +156,6 @@ También se incluye un CSV de muestra en `examples/export-ejemplo.csv`.
 - La calidad del escaneo depende de permisos, luz y enfoque del dispositivo.
 - iOS/Safari puede requerir reintentar permisos tras instalar la PWA.
 - Sin backend, los datos permanecen en el navegador/dispositivo actual.
-- El historial de movimientos por serial aún no está implementado.
 - La librería de escaneo depende de CDN en la primera carga online. Una vez cacheada, la app propia sí puede abrir offline, pero el CDN puede requerir mejora futura si se desea independencia total.
 
 ## Preparación para Google Sheets (siguiente iteración)
