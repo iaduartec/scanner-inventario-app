@@ -52,6 +52,9 @@ También incluye wrapper nativo con Capacitor para Android e iOS, pensado para g
 ├── icons/
 │   └── icon.svg
 ├── index.html
+├── vendor/
+│   ├── html5-qrcode/
+│   └── tesseract/
 ├── js/
 │   ├── app.js
 │   ├── constants.js
@@ -148,12 +151,24 @@ El workflow `.github/workflows/publish.yml` puede compilar o publicar por Fastla
 
 Secrets esperados:
 
-- `PLAY_JSON_KEY_PATH` o `PLAY_JSON_KEY_DATA`
-- `FASTLANE_APPLE_ID`
-- `FASTLANE_TEAM_ID`
-- `APPLE_ID`
-- `ITC_PROVIDER`
-- `APP_STORE_CONNECT_API_KEY_JSON`
+- `PLAY_JSON_KEY_PATH`: ruta absoluta o relativa al JSON de service account de Google Play.
+- `PLAY_JSON_KEY_DATA`: contenido completo del JSON de service account, si prefieres guardarlo inline.
+- `FASTLANE_APPLE_ID`: email de tu Apple ID.
+- `FASTLANE_TEAM_ID`: Team ID de Apple Developer.
+- `APPLE_ID`: identificador de la app en App Store Connect.
+- `ITC_PROVIDER`: proveedor de App Store Connect si tu cuenta lo requiere.
+- `APP_STORE_CONNECT_API_KEY_JSON`: JSON con `key_id`, `issuer_id`, `key_content` y opcionalmente `is_key_content_base64`.
+
+Ejemplo de `APP_STORE_CONNECT_API_KEY_JSON`:
+
+```json
+{
+  "key_id": "ABC123DEFG",
+  "issuer_id": "00000000-0000-0000-0000-000000000000",
+  "key_content": "BASE64_O_PLAINTEXT_DE_TU_CLAVE_P8",
+  "is_key_content_base64": true
+}
+```
 
 ## Cómo usar
 
@@ -197,7 +212,7 @@ Cada registro contiene:
 - **Sin framework**. [Inferencia] El repositorio estaba prácticamente vacío y el objetivo prioriza despliegue simple en GitHub Pages o hosting estático.
 - **Módulos ES nativos** para separar almacenamiento, UI, utilidades y escáner.
 - **`localStorage`** como persistencia base sin backend.
-- **`html5-qrcode` vía CDN** para evitar build step innecesario.
+- **`html5-qrcode` y `tesseract.js` vendorizados localmente** para evitar dependencias de red en el arranque del scanner.
 - **CSV con `;` y BOM UTF-8** para mejor compatibilidad con Excel en entornos hispanohablantes.
 
 ## Despliegue en GitHub Pages
@@ -231,9 +246,9 @@ También se incluye un CSV de muestra en `examples/export-ejemplo.csv`.
 - iOS/Safari puede requerir reintentar permisos tras instalar la PWA.
 - Android puede necesitar que el navegador tenga permisos de cámara activos para la pestaña o la app instalada.
 - Sin backend, los datos permanecen en el navegador/dispositivo actual.
-- La librería de escaneo depende de CDN en la primera carga online. Una vez cacheada, la app propia sí puede abrir offline, pero el CDN puede requerir mejora futura si se desea independencia total.
+- El escáner arranca con librerías locales vendorizadas, así que no depende de CDN para abrir offline.
 - El modo `S/N` depende de OCR y necesita mejor luz y encuadre que un barcode convencional.
-- El wrapper nativo sigue consumiendo las librerías de escaneo/OCR desde CDN; para una publicación más rígida en tiendas, conviene vendorizarlas en un siguiente paso.
+- El wrapper nativo usa las mismas rutas locales que la PWA, así que no hereda dependencias de CDN en iOS/Android.
 
 ## Preparación para Google Sheets (siguiente iteración)
 

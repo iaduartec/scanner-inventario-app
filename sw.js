@@ -1,4 +1,4 @@
-const CACHE_NAME = 'duartec-inventario-v2';
+const CACHE_NAME = 'duartec-inventario-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -11,6 +11,29 @@ const ASSETS = [
   './js/ui.js',
   './js/utils.js',
   './manifest.webmanifest',
+  './download/index.html',
+  './vendor/html5-qrcode/html5-qrcode.min.js',
+  './vendor/tesseract/tesseract.min.js',
+  './vendor/tesseract/worker.min.js',
+  './vendor/tesseract/core/tesseract-core.js',
+  './vendor/tesseract/core/tesseract-core.wasm.js',
+  './vendor/tesseract/core/tesseract-core.wasm',
+  './vendor/tesseract/core/tesseract-core-simd.js',
+  './vendor/tesseract/core/tesseract-core-simd.wasm.js',
+  './vendor/tesseract/core/tesseract-core-simd.wasm',
+  './vendor/tesseract/core/tesseract-core-lstm.js',
+  './vendor/tesseract/core/tesseract-core-lstm.wasm.js',
+  './vendor/tesseract/core/tesseract-core-lstm.wasm',
+  './vendor/tesseract/core/tesseract-core-simd-lstm.js',
+  './vendor/tesseract/core/tesseract-core-simd-lstm.wasm.js',
+  './vendor/tesseract/core/tesseract-core-simd-lstm.wasm',
+  './vendor/tesseract/core/tesseract-core-relaxedsimd.js',
+  './vendor/tesseract/core/tesseract-core-relaxedsimd.wasm.js',
+  './vendor/tesseract/core/tesseract-core-relaxedsimd.wasm',
+  './vendor/tesseract/core/tesseract-core-relaxedsimd-lstm.js',
+  './vendor/tesseract/core/tesseract-core-relaxedsimd-lstm.wasm.js',
+  './vendor/tesseract/core/tesseract-core-relaxedsimd-lstm.wasm',
+  './vendor/tesseract/lang/eng.traineddata.gz',
   './icons/icon-180.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -38,6 +61,11 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) return cachedResponse;
 
+      const requestUrl = new URL(event.request.url);
+      const fallbackUrl = requestUrl.pathname.startsWith('/download/')
+        ? './download/index.html'
+        : './index.html';
+
       return fetch(event.request)
         .then((networkResponse) => {
           if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
@@ -48,7 +76,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
           return networkResponse;
         })
-        .catch(() => caches.match('./index.html'));
+        .catch(() => caches.match(fallbackUrl));
     }),
   );
 });

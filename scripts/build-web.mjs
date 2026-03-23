@@ -11,6 +11,7 @@ const COPY_TARGETS = [
   'css',
   'icons',
   'js',
+  'vendor',
 ];
 
 async function copyRecursive(source, destination) {

@@ -27,6 +27,12 @@ const OCR_MAC_PATTERNS = [
 
 let activeScanner = null;
 
+const OCR_ASSETS = {
+  workerPath: './vendor/tesseract/worker.min.js',
+  corePath: './vendor/tesseract/core',
+  langPath: './vendor/tesseract/lang',
+};
+
 function getScannerContainer(elementId) {
   const container = document.getElementById(elementId);
   if (!container) {
@@ -310,7 +316,7 @@ async function startOcrScanner({ elementId, onScan, onError }) {
   video.srcObject = stream;
   await video.play();
 
-  const worker = await window.Tesseract.createWorker('eng');
+  const worker = await window.Tesseract.createWorker('eng', 1, OCR_ASSETS);
   const canvas = ensureCanvas(1600, 1200);
   const context = canvas.getContext('2d', { willReadFrequently: true });
 
