@@ -3,6 +3,29 @@ const scannerState = {
   active: false,
 };
 
+const barcodeFormats = [
+  'CODE_128',
+  'CODE_39',
+  'CODE_93',
+  'CODABAR',
+  'EAN_13',
+  'EAN_8',
+  'ITF',
+  'UPC_A',
+  'UPC_E',
+];
+
+function getBarcodeFormatsToSupport() {
+  const formats = window.Html5QrcodeSupportedFormats;
+  if (!formats) return undefined;
+
+  const supported = barcodeFormats
+    .map((format) => formats[format])
+    .filter((format) => typeof format === 'number');
+
+  return supported.length ? supported : undefined;
+}
+
 export async function startScanner({ elementId, onScan, onError }) {
   if (!window.Html5Qrcode) {
     throw new Error('No se pudo cargar la librería html5-qrcode.');
@@ -21,8 +44,17 @@ export async function startScanner({ elementId, onScan, onError }) {
       { facingMode: 'environment' },
       {
         fps: 10,
-        qrbox: { width: 240, height: 140 },
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const width = Math.min(420, Math.floor(viewfinderWidth * 0.9));
+          const height = Math.min(180, Math.floor(viewfinderHeight * 0.22));
+          return { width, height: Math.max(120, height) };
+        },
         aspectRatio: 1.6,
+        formatsToSupport: getBarcodeFormatsToSupport(),
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true,
+        },
+        disableFlip: true,
         rememberLastUsedCamera: true,
       },
       onScan,
