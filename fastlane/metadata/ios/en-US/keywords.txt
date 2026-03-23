@@ -1,0 +1,1 @@
+inventario,serial,qr,barcode,ocr,offline,csv,camara,tecnico,duartec

@@ -8,6 +8,10 @@
     "cap:sync": "npm run build:web && npx cap sync",
     "cap:sync:android": "npm run build:web && npx cap sync android",
     "cap:sync:ios": "npm run build:web && npx cap sync ios",
+    "publish:android": "bundle exec fastlane android deploy",
+    "publish:android:build": "bundle exec fastlane android build_release",
+    "publish:ios": "bundle exec fastlane ios deploy",
+    "publish:ios:build": "bundle exec fastlane ios build_release",
     "test": "node --test tests/*.test.js",
     "check": "node --check js/app.js && node --check js/scanner.js && node --check js/storage.js && node --check js/ui.js && node --check js/utils.js"
   },

@@ -1,0 +1,1 @@
+Wrapper nativo con Capacitor, permisos de cámara y preparación para App Store.

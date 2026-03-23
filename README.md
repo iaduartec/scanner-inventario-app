@@ -118,6 +118,7 @@ npx cap open ios
 - Android: genera un `AAB` desde Android Studio para Play Store.
 - iOS: genera un `IPA` desde Xcode en macOS para App Store.
 - Necesitas cuentas de publicación de Google Play y Apple Developer, además de firma y assets de tienda.
+- También puedes usar `fastlane` con los lanes `android deploy` e `ios deploy` una vez configures credenciales.
 
 ### Firma Android
 
@@ -125,6 +126,21 @@ npx cap open ios
 2. Rellena `storeFile`, `storePassword`, `keyAlias` y `keyPassword`.
 3. Mantén el `.jks` fuera del repositorio.
 4. Ejecuta `npx cap sync android` y luego compila el `AAB` firmado desde Android Studio.
+
+### Fastlane
+
+```bash
+bundle install
+bundle exec fastlane android build_release
+bundle exec fastlane ios build_release
+```
+
+Para publicar:
+
+```bash
+bundle exec fastlane android deploy
+bundle exec fastlane ios deploy
+```
 
 ## Cómo usar
 

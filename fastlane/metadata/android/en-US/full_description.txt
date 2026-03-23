@@ -1,0 +1,9 @@
+Duartec Inventario es una app móvil para técnicos que necesitan registrar y consultar equipos en campo.
+
+Funciones principales:
+- Escaneo de QR, códigos de barras y lectura OCR de seriales.
+- Alta y edición manual de registros.
+- Búsqueda, filtros y exportación CSV.
+- Funcionamiento offline tras la primera carga.
+
+La app guarda los datos localmente en el dispositivo y está pensada para flujos rápidos de inventario sin backend.

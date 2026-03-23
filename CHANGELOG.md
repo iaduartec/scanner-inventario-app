@@ -1,5 +1,10 @@
 # Changelog
 
+## Publicación preparada - 2026-03-23
+- Se añade `fastlane` para automatizar build y publicación en Android e iOS.
+- Se incorporan metadatos base para Play Store y App Store.
+- Se añaden scripts npm para publicar o generar builds de release.
+
 ## 1.2.0 - 2026-03-23
 - Se añade wrapper nativo con Capacitor para Android e iOS.
 - Se generan los proyectos `android/` e `ios/` para construir APK/AAB e IPA desde la misma base web.
