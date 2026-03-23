@@ -142,6 +142,19 @@ bundle exec fastlane android deploy
 bundle exec fastlane ios deploy
 ```
 
+### GitHub Actions
+
+El workflow `.github/workflows/publish.yml` puede compilar o publicar por Fastlane en `ubuntu-latest` para Android y `macos-latest` para iOS.
+
+Secrets esperados:
+
+- `PLAY_JSON_KEY_PATH` o `PLAY_JSON_KEY_DATA`
+- `FASTLANE_APPLE_ID`
+- `FASTLANE_TEAM_ID`
+- `APPLE_ID`
+- `ITC_PROVIDER`
+- `APP_STORE_CONNECT_API_KEY_JSON`
+
 ## Cómo usar
 
 1. Pulsa **Escanear equipo instalado** o **Escanear equipo desinstalado**.

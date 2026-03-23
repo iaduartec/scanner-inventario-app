@@ -1,5 +1,10 @@
 # Changelog
 
+## Fastlane CI - 2026-03-23
+- Se añade un workflow de GitHub Actions para compilar o publicar con Fastlane.
+- Android corre en `ubuntu-latest` y iOS en `macos-latest`.
+- Se documentan los secretos necesarios para la publicación.
+
 ## Página de descarga - 2026-03-23
 - Se añade la ruta `/download/` para distribuir el APK firmado fuera de Google Play.
 - Se publica un SHA-256 verificable y enlaces directos al APK y a la release.

@@ -1,0 +1,102 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Platform to publish"
+        required: true
+        default: "android"
+        type: choice
+        options:
+          - android
+          - ios
+          - both
+      deploy:
+        description: "Upload to the store instead of building only"
+        required: true
+        default: false
+        type: boolean
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  android:
+    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'android' || inputs.platform == 'both'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - run: npm ci
+
+      - name: Build Android with Fastlane
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy != true
+        run: bundle exec fastlane android build_release
+        env:
+          CI: "true"
+      - name: Deploy Android with Fastlane
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy == true)
+        run: bundle exec fastlane android deploy
+        env:
+          CI: "true"
+          PLAY_TRACK: internal
+          PLAY_RELEASE_STATUS: draft
+          PLAY_JSON_KEY_PATH: ${{ secrets.PLAY_JSON_KEY_PATH }}
+          PLAY_JSON_KEY_DATA: ${{ secrets.PLAY_JSON_KEY_DATA }}
+
+  ios:
+    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'ios' || inputs.platform == 'both'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build iOS with Fastlane
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy != true
+        run: bundle exec fastlane ios build_release
+        env:
+          CI: "true"
+          FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
+          FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          ITC_PROVIDER: ${{ secrets.ITC_PROVIDER }}
+          APP_STORE_CONNECT_API_KEY_JSON: ${{ secrets.APP_STORE_CONNECT_API_KEY_JSON }}
+          IOS_EXPORT_METHOD: app-store
+      - name: Deploy iOS with Fastlane
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy == true)
+        run: bundle exec fastlane ios deploy
+        env:
+          CI: "true"
+          FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
+          FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          ITC_PROVIDER: ${{ secrets.ITC_PROVIDER }}
+          APP_STORE_CONNECT_API_KEY_JSON: ${{ secrets.APP_STORE_CONNECT_API_KEY_JSON }}
+          IOS_EXPORT_METHOD: app-store
