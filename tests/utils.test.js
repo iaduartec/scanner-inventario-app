@@ -32,7 +32,7 @@ test('createRecord añade movimiento al editar un registro existente', () => {
   const original = createRecord({
     serial: '001AE8FBDDED',
     modelo: 'Motorola',
-    estado: 'RESERVA',
+    estado: 'DESINSTALADO',
     cliente: 'Cliente',
     ubicacion: 'Ubicacion',
     tecnico: 'Tecnico',
@@ -81,7 +81,7 @@ test('toCsv incluye cabecera y BOM UTF-8', () => {
       id: '1',
       serial: '001AE8FBDDED',
       modelo: 'Motorola',
-      estado: 'RESERVA',
+      estado: 'DESINSTALADO',
       cliente: 'Cliente',
       ubicacion: 'Ubicacion',
       tecnico: 'Tecnico',

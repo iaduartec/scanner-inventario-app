@@ -30,7 +30,7 @@ export const demoRecords = [
     id: 'demo-2',
     serial: '001AE8F79C13',
     modelo: 'Samsung Galaxy A54',
-    estado: 'RESERVA',
+    estado: 'DESINSTALADO',
     cliente: 'Clínica Central',
     ubicacion: 'Almacén móvil',
     tecnico: 'Ana Pérez',
@@ -42,7 +42,7 @@ export const demoRecords = [
       {
         id: 'demo-2-mov-1',
         tipo: 'alta',
-        estado: 'RESERVA',
+        estado: 'DESINSTALADO',
         modelo: 'Samsung Galaxy A54',
         cliente: 'Clínica Central',
         ubicacion: 'Almacén móvil',

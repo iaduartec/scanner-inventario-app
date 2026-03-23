@@ -41,8 +41,8 @@
           </div>
 
           <div class="quick-actions" role="group" aria-label="Acciones principales de escaneo">
-            <button id="scanInstalledButton" class="primary-action" type="button">Escanear INSTALADO</button>
-            <button id="scanReserveButton" class="secondary-action" type="button">Escanear RESERVA</button>
+            <button id="scanEquipoInstaladoButton" class="primary-action" type="button">Escanear equipo instalado</button>
+            <button id="scanEquipoDesinstaladoButton" class="secondary-action" type="button">Escanear equipo desinstalado</button>
           </div>
 
           <div class="scan-layout">
@@ -100,7 +100,7 @@
                 <span>Estado *</span>
                 <select id="estado" name="estado" required>
                   <option value="INSTALADO">INSTALADO</option>
-                  <option value="RESERVA">RESERVA</option>
+                  <option value="DESINSTALADO">DESINSTALADO</option>
                   <option value="RETIRADO">RETIRADO</option>
                   <option value="AVERIADO">AVERIADO</option>
                 </select>
@@ -163,8 +163,8 @@
 
           <div class="summary-row">
             <span id="recordCount">0 registros</span>
-            <span id="installedCount">0 instalados</span>
-            <span id="reserveCount">0 reserva</span>
+            <span id="equipoInstaladoCount">0 instalados</span>
+            <span id="equipoDesinstaladoCount">0 desinstalado</span>
             <span id="offlineReady">Modo offline listo</span>
           </div>
 

@@ -1,29 +1,29 @@
 import { ESTADOS } from './constants.js';
 import { formatDateTime } from './utils.js';
 
-export function renderFilterChips(container, activeFilter, onChange) {
-  container.innerHTML = ESTADOS.map(
+export function renderFilterChips(contenedor, filtroActivo, alCambiar) {
+  contenedor.innerHTML = ESTADOS.map(
     (estado) => `
       <button
         type="button"
-        class="filter-chip ${activeFilter === estado ? 'active' : ''}"
+        class="filter-chip ${filtroActivo === estado ? 'active' : ''}"
         data-filter="${estado}"
         role="tab"
-        aria-selected="${activeFilter === estado}"
+        aria-selected="${filtroActivo === estado}"
       >
         ${estado}
       </button>
     `,
   ).join('');
 
-  container.querySelectorAll('[data-filter]').forEach((button) => {
-    button.addEventListener('click', () => onChange(button.dataset.filter));
+  contenedor.querySelectorAll('[data-filter]').forEach((button) => {
+    button.addEventListener('click', () => alCambiar(button.dataset.filter));
   });
 }
 
-export function renderRecords({ records, tableBody, onEdit, onDelete, onSelect, selectedId }) {
-  if (!records.length) {
-    tableBody.innerHTML = `
+export function renderRecords({ records: registros, tableBody: cuerpoTabla, onEdit: alEditar, onDelete: alEliminar, onSelect: alSeleccionar, selectedId: idSeleccionado }) {
+  if (!registros.length) {
+    cuerpoTabla.innerHTML = `
       <tr>
         <td colspan="8" class="empty-state">
           No hay registros para este filtro. Escanea un equipo o crea uno manualmente.
@@ -33,28 +33,28 @@ export function renderRecords({ records, tableBody, onEdit, onDelete, onSelect, 
     return;
   }
 
-  tableBody.innerHTML = records
+  cuerpoTabla.innerHTML = registros
     .map(
-      (record) => `
-        <tr class="${selectedId === record.id ? 'is-selected' : ''}">
+      (registro) => `
+        <tr class="${idSeleccionado === registro.id ? 'is-selected' : ''}">
           <td class="serial-cell">
-            <strong>${record.serial}</strong>
-            <span class="serial-meta">${record.fuenteCaptura} · ${record.observaciones || 'Sin observaciones'}</span>
+            <strong>${registro.serial}</strong>
+            <span class="serial-meta">${registro.fuenteCaptura} · ${registro.observaciones || 'Sin observaciones'}</span>
           </td>
-          <td><span class="status-pill status-${record.estado}">${record.estado}</span></td>
-          <td>${record.modelo || '—'}</td>
-          <td>${record.cliente || '—'}</td>
-          <td>${record.ubicacion || '—'}</td>
-          <td>${record.tecnico || '—'}</td>
+          <td><span class="status-pill status-${registro.estado}">${registro.estado}</span></td>
+          <td>${registro.modelo || '—'}</td>
+          <td>${registro.cliente || '—'}</td>
+          <td>${registro.ubicacion || '—'}</td>
+          <td>${registro.tecnico || '—'}</td>
           <td>
-            <strong>${formatDateTime(record.fechaUltimoMovimiento)}</strong>
-            <span class="serial-meta">Alta: ${formatDateTime(record.fechaAlta)}</span>
+            <strong>${formatDateTime(registro.fechaUltimoMovimiento)}</strong>
+            <span class="serial-meta">Alta: ${formatDateTime(registro.fechaAlta)}</span>
           </td>
           <td>
             <div class="table-actions">
-              <button type="button" class="ghost-button" data-detail="${record.id}">Detalle</button>
-              <button type="button" class="ghost-button" data-edit="${record.id}">Editar</button>
-              <button type="button" class="ghost-button danger-text" data-delete="${record.id}">Eliminar</button>
+              <button type="button" class="ghost-button" data-detail="${registro.id}">Detalle</button>
+              <button type="button" class="ghost-button" data-edit="${registro.id}">Editar</button>
+              <button type="button" class="ghost-button danger-text" data-delete="${registro.id}">Eliminar</button>
             </div>
           </td>
         </tr>
@@ -62,22 +62,22 @@ export function renderRecords({ records, tableBody, onEdit, onDelete, onSelect, 
     )
     .join('');
 
-  tableBody.querySelectorAll('[data-edit]').forEach((button) => {
-    button.addEventListener('click', () => onEdit(button.dataset.edit));
+  cuerpoTabla.querySelectorAll('[data-edit]').forEach((button) => {
+    button.addEventListener('click', () => alEditar(button.dataset.edit));
   });
 
-  tableBody.querySelectorAll('[data-delete]').forEach((button) => {
-    button.addEventListener('click', () => onDelete(button.dataset.delete));
+  cuerpoTabla.querySelectorAll('[data-delete]').forEach((button) => {
+    button.addEventListener('click', () => alEliminar(button.dataset.delete));
   });
 
-  tableBody.querySelectorAll('[data-detail]').forEach((button) => {
-    button.addEventListener('click', () => onSelect(button.dataset.detail));
+  cuerpoTabla.querySelectorAll('[data-detail]').forEach((button) => {
+    button.addEventListener('click', () => alSeleccionar(button.dataset.detail));
   });
 }
 
-export function renderRecordDetail({ container, record, onEdit }) {
-  if (!record) {
-    container.innerHTML = `
+export function renderRecordDetail({ container: contenedor, record: registro, onEdit: alEditar }) {
+  if (!registro) {
+    contenedor.innerHTML = `
       <div class="detail-empty">
         <p class="eyebrow">Detalle</p>
         <h3>Selecciona un equipo</h3>
@@ -87,34 +87,34 @@ export function renderRecordDetail({ container, record, onEdit }) {
     return;
   }
 
-  const history = [...(record.historial ?? [])].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+  const history = [...(registro.historial ?? [])].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
-  container.innerHTML = `
+  contenedor.innerHTML = `
     <div class="detail-header">
       <div>
         <p class="eyebrow">Detalle de equipo</p>
-        <h3>${record.serial}</h3>
-        <p class="subtle">${record.modelo || 'Sin modelo'} · ${record.cliente || 'Sin cliente'} · ${record.ubicacion || 'Sin ubicación'}</p>
+        <h3>${registro.serial}</h3>
+        <p class="subtle">${registro.modelo || 'Sin modelo'} · ${registro.cliente || 'Sin cliente'} · ${registro.ubicacion || 'Sin ubicación'}</p>
       </div>
-      <button type="button" class="ghost-button" data-detail-edit="${record.id}">Editar este registro</button>
+      <button type="button" class="ghost-button" data-detail-edit="${registro.id}">Editar este registro</button>
     </div>
 
     <dl class="detail-grid" aria-label="Resumen del equipo seleccionado">
       <div>
         <dt>Estado actual</dt>
-        <dd><span class="status-pill status-${record.estado}">${record.estado}</span></dd>
+        <dd><span class="status-pill status-${registro.estado}">${registro.estado}</span></dd>
       </div>
       <div>
         <dt>Técnico</dt>
-        <dd>${record.tecnico || '—'}</dd>
+        <dd>${registro.tecnico || '—'}</dd>
       </div>
       <div>
         <dt>Alta</dt>
-        <dd>${formatDateTime(record.fechaAlta)}</dd>
+        <dd>${formatDateTime(registro.fechaAlta)}</dd>
       </div>
       <div>
         <dt>Último movimiento</dt>
-        <dd>${formatDateTime(record.fechaUltimoMovimiento)}</dd>
+        <dd>${formatDateTime(registro.fechaUltimoMovimiento)}</dd>
       </div>
     </dl>
 
@@ -147,33 +147,38 @@ export function renderRecordDetail({ container, record, onEdit }) {
     </div>
   `;
 
-  container.querySelector('[data-detail-edit]')?.addEventListener('click', () => onEdit(record.id));
+  contenedor.querySelector('[data-detail-edit]')?.addEventListener('click', () => alEditar(registro.id));
 }
 
-export function setFeedback(element, message, variant = 'info') {
-  if (!message) {
-    element.textContent = '';
-    element.className = 'feedback-banner hidden';
+export function setFeedback(elemento, mensaje, variant = 'info') {
+  if (!mensaje) {
+    elemento.textContent = '';
+    elemento.className = 'feedback-banner hidden';
     return;
   }
 
-  element.textContent = message;
-  element.className = `feedback-banner ${variant}`;
+  elemento.textContent = mensaje;
+  elemento.className = `feedback-banner ${variant}`;
 }
 
-export function toggleDuplicateAlert(element, visible) {
-  element.classList.toggle('hidden', !visible);
+export function toggleDuplicateAlert(elemento, visible) {
+  elemento.classList.toggle('hidden', !visible);
 }
 
-export function updateLastCapture({ serialElement, metaElement, record }) {
-  serialElement.textContent = record?.serial ?? 'Sin lecturas todavía';
-  metaElement.textContent = record
-    ? `${record.estado} · ${record.modelo || 'Sin modelo'} · ${formatDateTime(record.fechaUltimoMovimiento)}`
+export function updateLastCapture({ serialElement: serialElemento, metaElement: metaElemento, record: registro }) {
+  serialElemento.textContent = registro?.serial ?? 'Sin lecturas todavía';
+  metaElemento.textContent = registro
+    ? `${registro.estado} · ${registro.modelo || 'Sin modelo'} · ${formatDateTime(registro.fechaUltimoMovimiento)}`
     : 'Esperando el primer escaneo o alta manual.';
 }
 
-export function updateCounters({ records, recordCount, installedCount, reserveCount }) {
-  recordCount.textContent = `${records.length} registros`;
-  installedCount.textContent = `${records.filter((item) => item.estado === 'INSTALADO').length} instalados`;
-  reserveCount.textContent = `${records.filter((item) => item.estado === 'RESERVA').length} reserva`;
+export function updateCounters({
+  records: registros,
+  recordCount: contadorRegistros,
+  equipoInstaladoCount: contadorEquiposInstalados,
+  equipoDesinstaladoCount: contadorEquiposDesinstalados,
+}) {
+  contadorRegistros.textContent = `${registros.length} registros`;
+  contadorEquiposInstalados.textContent = `${registros.filter((item) => item.estado === 'INSTALADO').length} instalados`;
+  contadorEquiposDesinstalados.textContent = `${registros.filter((item) => item.estado === 'DESINSTALADO').length} desinstalado`;
 }

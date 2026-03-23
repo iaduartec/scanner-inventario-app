@@ -26,7 +26,7 @@ Aplicación web instalable (PWA) para técnicos de Duartec que necesitan escanea
 - Documentación ampliada.
 
 ### FASE 2 completada
-- Escaneo con dos acciones rápidas: `INSTALADO` y `RESERVA`.
+- Escaneo con dos acciones rápidas: `INSTALADO` y `DESINSTALADO`.
 - Alta manual y edición manual de registros.
 - Detección robusta de duplicados por serial normalizado.
 - Búsqueda, filtros por estado, exportación CSV y eliminación de registros.
@@ -92,7 +92,7 @@ Sirve la carpeta raíz del repositorio como sitio estático.
 
 ## Cómo usar
 
-1. Pulsa **Escanear INSTALADO** o **Escanear RESERVA**.
+1. Pulsa **Escanear equipo instalado** o **Escanear equipo desinstalado**.
 2. Apunta la cámara al código del equipo.
 3. Revisa el feedback visual/sonoro.
 4. Completa o corrige datos en el formulario si hace falta.
@@ -102,7 +102,7 @@ Sirve la carpeta raíz del repositorio como sitio estático.
 ## Estados de equipo
 
 - `INSTALADO`
-- `RESERVA`
+- `DESINSTALADO`
 - `RETIRADO`
 - `AVERIADO`
 

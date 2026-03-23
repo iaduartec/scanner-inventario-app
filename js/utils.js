@@ -1,5 +1,9 @@
 import { ESTADOS_REGISTRO } from './constants.js';
 
+const LEGACY_ESTADO_MAP = {
+  RESERVA: 'DESINSTALADO',
+};
+
 export function normalizeSerial(value) {
   return String(value ?? '')
     .trim()
@@ -11,8 +15,13 @@ export function normalizeText(value) {
   return String(value ?? '').trim();
 }
 
+export function normalizeEstado(estado) {
+  const normalized = normalizeText(estado).toUpperCase();
+  return LEGACY_ESTADO_MAP[normalized] ?? normalized;
+}
+
 export function isValidEstado(estado) {
-  return ESTADOS_REGISTRO.includes(estado);
+  return ESTADOS_REGISTRO.includes(normalizeEstado(estado));
 }
 
 export function nowIso() {
@@ -41,7 +50,7 @@ function buildHistoryEntry(record, tipo) {
   return {
     id: createId(),
     tipo,
-    estado: record.estado,
+    estado: normalizeEstado(record.estado),
     modelo: record.modelo,
     cliente: record.cliente,
     ubicacion: record.ubicacion,
@@ -54,12 +63,10 @@ function buildHistoryEntry(record, tipo) {
 
 export function ensureRecordHistory(record) {
   if (!record) return record;
-  if (Array.isArray(record.historial) && record.historial.length > 0) {
-    return record;
-  }
 
   const baseRecord = {
     ...record,
+    estado: normalizeEstado(record.estado),
     modelo: normalizeText(record.modelo),
     cliente: normalizeText(record.cliente),
     ubicacion: normalizeText(record.ubicacion),
@@ -69,14 +76,25 @@ export function ensureRecordHistory(record) {
     fechaUltimoMovimiento: record.fechaUltimoMovimiento ?? record.fechaAlta ?? nowIso(),
   };
 
+  const history = Array.isArray(record.historial) ? record.historial : [];
+
   return {
     ...baseRecord,
-    historial: [
-      buildHistoryEntry({
-        ...baseRecord,
-        fechaUltimoMovimiento: baseRecord.fechaAlta ?? baseRecord.fechaUltimoMovimiento,
-      }, 'alta'),
-    ],
+    historial:
+      history.length > 0
+        ? history.map((entry) => ({
+            ...entry,
+            estado: normalizeEstado(entry.estado),
+          }))
+        : [
+            buildHistoryEntry(
+              {
+                ...baseRecord,
+                fechaUltimoMovimiento: baseRecord.fechaAlta ?? baseRecord.fechaUltimoMovimiento,
+              },
+              'alta',
+            ),
+          ],
   };
 }
 
@@ -100,7 +118,7 @@ export function toCsv(records) {
       record.id,
       record.serial,
       record.modelo,
-      record.estado,
+      normalizeEstado(record.estado),
       record.cliente,
       record.ubicacion,
       record.tecnico,
@@ -129,12 +147,13 @@ export function downloadCsv(filename, content) {
 export function createRecord(input, currentRecord) {
   const timestamp = nowIso();
   const serial = normalizeSerial(input.serial);
+  const estado = normalizeEstado(input.estado);
 
   if (!serial) {
     throw new Error('El serial es obligatorio.');
   }
 
-  if (!isValidEstado(input.estado)) {
+  if (!isValidEstado(estado)) {
     throw new Error('El estado seleccionado no es válido.');
   }
 
@@ -142,7 +161,7 @@ export function createRecord(input, currentRecord) {
     id: currentRecord?.id ?? createId(),
     serial,
     modelo: normalizeText(input.modelo),
-    estado: input.estado,
+    estado,
     cliente: normalizeText(input.cliente),
     ubicacion: normalizeText(input.ubicacion),
     tecnico: normalizeText(input.tecnico),
