@@ -37,6 +37,49 @@ export function escapeCsv(value) {
   return `"${text.replace(/"/g, '""')}"`;
 }
 
+function buildHistoryEntry(record, tipo) {
+  return {
+    id: createId(),
+    tipo,
+    estado: record.estado,
+    modelo: record.modelo,
+    cliente: record.cliente,
+    ubicacion: record.ubicacion,
+    tecnico: record.tecnico,
+    observaciones: record.observaciones,
+    fuenteCaptura: record.fuenteCaptura,
+    fecha: record.fechaUltimoMovimiento,
+  };
+}
+
+export function ensureRecordHistory(record) {
+  if (!record) return record;
+  if (Array.isArray(record.historial) && record.historial.length > 0) {
+    return record;
+  }
+
+  const baseRecord = {
+    ...record,
+    modelo: normalizeText(record.modelo),
+    cliente: normalizeText(record.cliente),
+    ubicacion: normalizeText(record.ubicacion),
+    tecnico: normalizeText(record.tecnico),
+    observaciones: normalizeText(record.observaciones),
+    fuenteCaptura: record.fuenteCaptura ?? 'manual',
+    fechaUltimoMovimiento: record.fechaUltimoMovimiento ?? record.fechaAlta ?? nowIso(),
+  };
+
+  return {
+    ...baseRecord,
+    historial: [
+      buildHistoryEntry({
+        ...baseRecord,
+        fechaUltimoMovimiento: baseRecord.fechaAlta ?? baseRecord.fechaUltimoMovimiento,
+      }, 'alta'),
+    ],
+  };
+}
+
 export function toCsv(records) {
   const header = [
     'id',
@@ -95,7 +138,7 @@ export function createRecord(input, currentRecord) {
     throw new Error('El estado seleccionado no es válido.');
   }
 
-  return {
+  const nextRecord = {
     id: currentRecord?.id ?? createId(),
     serial,
     modelo: normalizeText(input.modelo),
@@ -107,5 +150,14 @@ export function createRecord(input, currentRecord) {
     fechaUltimoMovimiento: timestamp,
     observaciones: normalizeText(input.observaciones),
     fuenteCaptura: input.fuenteCaptura ?? currentRecord?.fuenteCaptura ?? 'manual',
+  };
+
+  const previousRecord = ensureRecordHistory(currentRecord);
+  const historyType = previousRecord ? 'actualizacion' : 'alta';
+  const history = previousRecord?.historial ?? [];
+
+  return {
+    ...nextRecord,
+    historial: [...history, buildHistoryEntry(nextRecord, historyType)],
   };
 }

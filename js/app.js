@@ -5,12 +5,13 @@ import { loadRecords, saveRecords, loadSettings, saveSettings } from './storage.
 import {
   createRecord,
   downloadCsv,
-  formatDateTime,
+  ensureRecordHistory,
   normalizeSerial,
   toCsv,
 } from './utils.js';
 import {
   renderFilterChips,
+  renderRecordDetail,
   renderRecords,
   setFeedback,
   toggleDuplicateAlert,
@@ -19,10 +20,11 @@ import {
 } from './ui.js';
 
 const state = {
-  records: loadRecords(),
+  records: loadRecords().map(ensureRecordHistory),
   filter: 'TODOS',
   search: '',
   editId: null,
+  selectedRecordId: null,
   scanTargetState: 'INSTALADO',
   deferredPrompt: null,
 };
@@ -58,6 +60,7 @@ const elements = {
   exportButton: document.querySelector('#exportButton'),
   clearAllButton: document.querySelector('#clearAllButton'),
   loadDemoButton: document.querySelector('#loadDemoButton'),
+  detailPanel: document.querySelector('#detailPanel'),
 };
 
 function beep(success = true) {
@@ -96,12 +99,30 @@ function getFilteredRecords() {
     .sort((a, b) => new Date(b.fechaUltimoMovimiento) - new Date(a.fechaUltimoMovimiento));
 }
 
+function getSelectedRecord() {
+  return state.records.find((record) => record.id === state.selectedRecordId) ?? null;
+}
+
 function persistRecords() {
   saveRecords(state.records);
 }
 
+function syncSelectedRecord(filteredRecords) {
+  if (!state.records.length) {
+    state.selectedRecordId = null;
+    return;
+  }
+
+  const stillExists = state.records.some((record) => record.id === state.selectedRecordId);
+  if (stillExists) return;
+
+  state.selectedRecordId = filteredRecords[0]?.id ?? state.records[0]?.id ?? null;
+}
+
 function refreshUi() {
   const filteredRecords = getFilteredRecords();
+  syncSelectedRecord(filteredRecords);
+
   renderFilterChips(elements.filterChips, state.filter, (nextFilter) => {
     state.filter = nextFilter;
     refreshUi();
@@ -111,6 +132,13 @@ function refreshUi() {
     tableBody: elements.inventoryTableBody,
     onEdit: startEditing,
     onDelete: removeRecord,
+    onSelect: selectRecord,
+    selectedId: state.selectedRecordId,
+  });
+  renderRecordDetail({
+    container: elements.detailPanel,
+    record: getSelectedRecord(),
+    onEdit: startEditing,
   });
   updateCounters({
     records: state.records,
@@ -158,6 +186,11 @@ function fillForm(record) {
   elements.saveButton.textContent = 'Actualizar registro';
 }
 
+function selectRecord(id) {
+  state.selectedRecordId = id;
+  refreshUi();
+}
+
 function saveFormRecord(formData, source = 'manual') {
   const currentRecord = state.records.find((record) => record.id === state.editId) ?? null;
   const duplicate = findDuplicate(formData.serial, currentRecord?.id ?? null);
@@ -173,6 +206,7 @@ function saveFormRecord(formData, source = 'manual') {
   } else {
     state.records = [record, ...state.records];
   }
+  state.selectedRecordId = record.id;
   persistRecords();
   updateLastCapture({
     serialElement: elements.lastSerial,
@@ -191,11 +225,13 @@ async function handleScan(serialText) {
   toggleDuplicateAlert(elements.duplicateAlert, Boolean(duplicate));
 
   if (duplicate) {
+    state.selectedRecordId = duplicate.id;
     updateLastCapture({
       serialElement: elements.lastSerial,
       metaElement: elements.lastCaptureMeta,
       record: duplicate,
     });
+    refreshUi();
     setFeedback(elements.feedbackBanner, `Duplicado detectado: ${serial} ya está registrado.`, 'error');
     beep(false);
     return;
@@ -213,6 +249,7 @@ async function handleScan(serialText) {
   });
 
   state.records = [record, ...state.records];
+  state.selectedRecordId = record.id;
   persistRecords();
   updateLastCapture({ serialElement: elements.lastSerial, metaElement: elements.lastCaptureMeta, record });
   refreshUi();
@@ -251,12 +288,14 @@ async function activateScanner(targetState) {
 function startEditing(id) {
   const record = state.records.find((item) => item.id === id);
   if (!record) return;
+  state.selectedRecordId = record.id;
   fillForm(record);
   updateLastCapture({
     serialElement: elements.lastSerial,
     metaElement: elements.lastCaptureMeta,
     record,
   });
+  refreshUi();
   setFeedback(elements.feedbackBanner, `Editando ${record.serial}.`, 'info');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -266,6 +305,9 @@ function removeRecord(id) {
   if (!record) return;
 
   state.records = state.records.filter((item) => item.id !== id);
+  if (state.selectedRecordId === id) {
+    state.selectedRecordId = null;
+  }
   persistRecords();
   refreshUi();
   toggleDuplicateAlert(elements.duplicateAlert, false);
@@ -287,7 +329,8 @@ function exportRecords() {
 function loadDemoData() {
   const settings = loadSettings();
   if (!settings.demoLoaded && !state.records.length) {
-    state.records = demoRecords;
+    state.records = demoRecords.map(ensureRecordHistory);
+    state.selectedRecordId = state.records[0]?.id ?? null;
     persistRecords();
     saveSettings({ ...settings, demoLoaded: true });
     refreshUi();
@@ -295,7 +338,8 @@ function loadDemoData() {
     return;
   }
 
-  state.records = demoRecords;
+  state.records = demoRecords.map(ensureRecordHistory);
+  state.selectedRecordId = state.records[0]?.id ?? null;
   persistRecords();
   refreshUi();
   setFeedback(elements.feedbackBanner, 'Demo restablecida sobre el almacenamiento local.', 'info');
@@ -303,6 +347,7 @@ function loadDemoData() {
 
 function clearRecords() {
   state.records = [];
+  state.selectedRecordId = null;
   persistRecords();
   refreshUi();
   resetForm();
@@ -381,11 +426,14 @@ function init() {
   bindEvents();
   registerServiceWorker();
   setupInstallPrompt();
+
+  const [latest] = getFilteredRecords();
+  state.selectedRecordId = latest?.id ?? null;
+
   refreshUi();
   resetForm();
   setScannerLabel();
 
-  const [latest] = getFilteredRecords();
   updateLastCapture({
     serialElement: elements.lastSerial,
     metaElement: elements.lastCaptureMeta,
