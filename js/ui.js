@@ -45,10 +45,6 @@ export function renderRecords({ records: registros, tableBody: cuerpoTabla, onEd
           <td><span class="status-pill status-${registro.estado}">${registro.estado}</span></td>
           <td>${registro.marca || '—'}</td>
           <td>${registro.modelo || '—'}</td>
-          <td>${registro.actuacion || '—'}</td>
-          <td>${registro.cliente || '—'}</td>
-          <td>${registro.ubicacion || '—'}</td>
-          <td>${registro.tecnico || '—'}</td>
           <td>
             <strong>${formatDateTime(registro.fechaUltimoMovimiento)}</strong>
             <span class="serial-meta">Alta: ${formatDateTime(registro.fechaAlta)}</span>
@@ -97,7 +93,7 @@ export function renderRecordDetail({ container: contenedor, record: registro, on
       <div>
         <p class="eyebrow">Detalle de equipo</p>
         <h3>${registro.serial}</h3>
-        <p class="subtle">${registro.mac ? `MAC ${registro.mac} · ` : ''}${registro.marca || 'Sin marca'} · ${registro.modelo || 'Sin modelo'} · ${registro.cliente || 'Sin cliente'} · ${registro.ubicacion || 'Sin ubicación'}</p>
+        <p class="subtle">${registro.mac ? `MAC ${registro.mac} · ` : ''}${registro.marca || 'Sin marca'} · ${registro.modelo || 'Sin modelo'}</p>
       </div>
       <button type="button" class="ghost-button" data-detail-edit="${registro.id}">Editar este registro</button>
     </div>
@@ -108,16 +104,8 @@ export function renderRecordDetail({ container: contenedor, record: registro, on
         <dd><span class="status-pill status-${registro.estado}">${registro.estado}</span></dd>
       </div>
       <div>
-        <dt>Técnico</dt>
-        <dd>${registro.tecnico || '—'}</dd>
-      </div>
-      <div>
         <dt>MAC</dt>
         <dd>${registro.mac || '—'}</dd>
-      </div>
-      <div>
-        <dt>Actuación</dt>
-        <dd>${registro.actuacion || '—'}</dd>
       </div>
       <div>
         <dt>Marca</dt>
