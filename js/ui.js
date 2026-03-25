@@ -43,6 +43,7 @@ export function renderRecords({ records: registros, tableBody: cuerpoTabla, onEd
           </td>
           <td><span class="status-pill status-${registro.estado}">${registro.estado}</span></td>
           <td>${registro.modelo || '—'}</td>
+          <td>${registro.actuacion || '—'}</td>
           <td>${registro.cliente || '—'}</td>
           <td>${registro.ubicacion || '—'}</td>
           <td>${registro.tecnico || '—'}</td>
@@ -113,6 +114,10 @@ export function renderRecordDetail({ container: contenedor, record: registro, on
         <dd>${registro.mac || '—'}</dd>
       </div>
       <div>
+        <dt>Actuación</dt>
+        <dd>${registro.actuacion || '—'}</dd>
+      </div>
+      <div>
         <dt>Marca</dt>
         <dd>${registro.marca || '—'}</dd>
       </div>
@@ -144,7 +149,7 @@ export function renderRecordDetail({ container: contenedor, record: registro, on
                 </div>
                 <p>
                   <span class="status-pill status-${movement.estado}">${movement.estado}</span>
-                  <span class="history-meta">${movement.mac ? `MAC ${movement.mac} · ` : ''}${movement.marca ? `${movement.marca} · ` : ''}${movement.fuenteCaptura} · ${movement.tecnico || 'Sin técnico'} · ${movement.ubicacion || 'Sin ubicación'}</span>
+                  <span class="history-meta">${movement.mac ? `MAC ${movement.mac} · ` : ''}${movement.marca ? `${movement.marca} · ` : ''}${movement.fuenteCaptura}${movement.actuacion ? ` · Act: ${movement.actuacion}` : ''} · ${movement.tecnico || 'Sin técnico'} · ${movement.ubicacion || 'Sin ubicación'}</span>
                 </p>
                 <p class="subtle">${movement.observaciones || 'Sin observaciones registradas.'}</p>
               </li>

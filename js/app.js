@@ -71,6 +71,7 @@ const referencias = {
   modelo: document.querySelector('#modelo'),
   estado: document.querySelector('#estado'),
   mac: document.querySelector('#mac'),
+  actuacion: document.querySelector('#actuacion'),
   cliente: document.querySelector('#cliente'),
   ubicacion: document.querySelector('#ubicacion'),
   tecnico: document.querySelector('#tecnico'),
@@ -157,7 +158,7 @@ function getFilteredRecords() {
     .filter((record) => (state.filtro === 'TODOS' ? true : record.estado === state.filtro))
     .filter((record) => {
       if (!search) return true;
-      return [record.serial, record.mac, record.modelo, record.marca, record.cliente, record.tecnico, record.ubicacion]
+      return [record.serial, record.mac, record.modelo, record.marca, record.actuacion, record.cliente, record.tecnico, record.ubicacion]
         .join(' ')
         .toLowerCase()
         .includes(search);
@@ -252,6 +253,7 @@ function fillForm(record) {
   referencias.marca.value = record.marca ?? '';
   referencias.modelo.value = record.modelo;
   referencias.estado.value = record.estado;
+  referencias.actuacion.value = record.actuacion ?? '';
   referencias.cliente.value = record.cliente;
   referencias.ubicacion.value = record.ubicacion;
   referencias.tecnico.value = record.tecnico;
@@ -378,6 +380,7 @@ async function handleScan(scanResult) {
     marca,
     modelo,
     estado: state.estadoObjetivoEscaneo,
+    actuacion: referencias.actuacion.value,
     cliente: referencias.cliente.value,
     ubicacion: referencias.ubicacion.value,
     tecnico: referencias.tecnico.value,
