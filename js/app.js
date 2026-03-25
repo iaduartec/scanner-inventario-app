@@ -12,12 +12,10 @@ import {
 } from './utils.js';
 import {
   renderFilterChips,
-  renderRecordDetail,
   renderRecords,
   setFeedback,
   toggleDuplicateAlert,
   updateCounters,
-  updateLastCapture,
 } from './ui.js';
 
 const isNativePlatform = Boolean(globalThis.Capacitor?.isNativePlatform?.());
@@ -28,7 +26,6 @@ const state = {
   filtro: 'TODOS',
   busqueda: '',
   idEdicion: null,
-  idRegistroSeleccionado: null,
   scanModes: initialSettings.scanModes ?? { qr: false, barcode: false, text: true },
   ocrFields: initialSettings.ocrFields ?? ['marca', 'modelo', 'sn', 'mac'],
   promptDiferido: null,
@@ -164,27 +161,12 @@ function getFilteredRecords() {
     .sort((a, b) => new Date(b.fechaUltimoMovimiento) - new Date(a.fechaUltimoMovimiento));
 }
 
-function getSelectedRecord() {
-  return state.registros.find((record) => record.id === state.idRegistroSeleccionado) ?? null;
-}
-
 function persistRecords() {
   saveRecords(state.registros);
 }
 
-function syncSelectedRecord(filteredRecords) {
-  if (!state.registros.length) {
-    state.idRegistroSeleccionado = null;
-    return;
-  }
-  const stillExists = state.registros.some((record) => record.id === state.idRegistroSeleccionado);
-  if (stillExists) return;
-  state.idRegistroSeleccionado = filteredRecords[0]?.id ?? state.registros[0]?.id ?? null;
-}
-
 function refreshUi() {
   const filteredRecords = getFilteredRecords();
-  syncSelectedRecord(filteredRecords);
 
   renderFilterChips(referencias.chipsFiltro, state.filtro, (nextFilter) => {
     state.filtro = nextFilter;
@@ -195,8 +177,6 @@ function refreshUi() {
     tableBody: referencias.cuerpoTablaInventario,
     onEdit: startEditing,
     onDelete: removeRecord,
-    onSelect: selectRecord,
-    selectedId: state.idRegistroSeleccionado,
   });
   updateCounters({
     records: state.registros,
@@ -260,11 +240,6 @@ function fillForm(record) {
   referencias.seccionFormulario.classList.remove('hidden');
 }
 
-function selectRecord(id) {
-  state.idRegistroSeleccionado = id;
-  refreshUi();
-}
-
 function saveFormRecord(formData, source = 'manual') {
   const currentRecord = state.registros.find((record) => record.id === state.idEdicion) ?? null;
   const duplicate = findDuplicate(formData.serial, currentRecord?.id ?? null);
@@ -281,7 +256,6 @@ function saveFormRecord(formData, source = 'manual') {
   } else {
     state.registros = [record, ...state.registros];
   }
-  state.idRegistroSeleccionado = record.id;
   persistRecords();
   refreshUi();
   resetForm();
@@ -333,7 +307,6 @@ async function handleScan(scanResult) {
         duplicate,
       );
       state.registros = state.registros.map((item) => (item.id === duplicate.id ? updatedRecord : item));
-      state.idRegistroSeleccionado = updatedRecord.id;
       persistRecords();
       refreshUi();
       setFeedback(referencias.bandaFeedback, `${cambios.join(' y ')} añadido al registro ${serial}.`, 'success');
@@ -341,7 +314,6 @@ async function handleScan(scanResult) {
       return;
     }
 
-    state.idRegistroSeleccionado = duplicate.id;
     refreshUi();
     setFeedback(referencias.bandaFeedback, `Duplicado: ${serial} ya registrado.`, 'error');
     beep(false);
@@ -359,7 +331,6 @@ async function handleScan(scanResult) {
   });
 
   state.registros = [record, ...state.registros];
-  state.idRegistroSeleccionado = record.id;
   persistRecords();
   refreshUi();
   setFeedback(referencias.bandaFeedback, `Escaneo OK: ${serial} -> ${record.estado}.`, 'success');
@@ -434,7 +405,6 @@ async function activateScanner() {
 function startEditing(id) {
   const record = state.registros.find((item) => item.id === id);
   if (!record) return;
-  state.idRegistroSeleccionado = record.id;
   fillForm(record);
   refreshUi();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -444,7 +414,6 @@ function removeRecord(id) {
   const record = state.registros.find((item) => item.id === id);
   if (!record) return;
   state.registros = state.registros.filter((item) => item.id !== id);
-  if (state.idRegistroSeleccionado === id) state.idRegistroSeleccionado = null;
   persistRecords();
   refreshUi();
   setFeedback(referencias.bandaFeedback, `Eliminado: ${record.serial}.`, 'info');
@@ -593,8 +562,6 @@ function init() {
   setupInstallPrompt();
   syncStateToCheckboxes();
   updateOcrFieldSelectorVisibility();
-  const [latest] = getFilteredRecords();
-  state.idRegistroSeleccionado = latest?.id ?? null;
   refreshUi();
   resetForm();
 }
