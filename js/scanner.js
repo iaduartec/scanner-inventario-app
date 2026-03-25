@@ -70,7 +70,8 @@ function getQrBox(viewfinderWidth, viewfinderHeight, scanMode) {
   }
 
   const width = Math.max(280, Math.min(Math.floor(viewfinderWidth * 0.92), 560));
-  const height = Math.max(100, Math.min(Math.floor(viewfinderHeight * 0.4), 160));
+  const size = Math.min(viewfinderWidth, viewfinderHeight) * 0.8;
+  const height = Math.max(120, Math.min(size, 250));
   return { width, height };
 }
 
