@@ -585,23 +585,43 @@ export async function processFileScan({ file, modes, fields, onScan, onError }) 
         img.src = imgUrl;
       });
 
-      const canvas = ensureCanvas(img.width, img.height);
-      const context = canvas.getContext('2d', { willReadFrequently: true });
-      context.drawImage(img, 0, 0);
-
-      const result = await worker.recognize(canvas);
-      const text = result?.data?.text ?? '';
-      
-      URL.revokeObjectURL(imgUrl);
-      await worker.terminate();
-
       const collectedData = {};
-      for (const currentField of fields) {
-        const extractor = OCR_FIELD_EXTRACTORS[currentField];
-        if (extractor) {
-          collectedData[currentField] = extractor(text) || '';
+
+      for (const angle of [0, 90, 180, 270]) {
+        const isSwapped = angle === 90 || angle === 270;
+        const canvas = ensureCanvas(
+          isSwapped ? img.height : img.width,
+          isSwapped ? img.width : img.height
+        );
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+        
+        context.translate(canvas.width / 2, canvas.height / 2);
+        context.rotate((angle * Math.PI) / 180);
+        context.drawImage(img, -img.width / 2, -img.height / 2);
+
+        const result = await worker.recognize(canvas);
+        const text = result?.data?.text ?? '';
+
+        for (const currentField of fields) {
+          if (!collectedData[currentField]) {
+            const extractor = OCR_FIELD_EXTRACTORS[currentField];
+            if (extractor) {
+              const value = extractor(text);
+              if (value) {
+                collectedData[currentField] = value;
+              }
+            }
+          }
+        }
+
+        // Si ya encontramos todos los campos solicitados, no seguimos rotando
+        if (fields.every(f => collectedData[f])) {
+          break;
         }
       }
+
+      URL.revokeObjectURL(imgUrl);
+      await worker.terminate();
 
       const payload = {
         serial: collectedData.sn ?? '',
