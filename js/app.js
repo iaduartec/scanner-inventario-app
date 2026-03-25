@@ -656,7 +656,8 @@ function bindEvents() {
               if (marca) referencias.marca.value = marca;
               if (modelo) referencias.modelo.value = modelo;
               if (mac) referencias.mac.value = mac;
-              setFeedback(referencias.bandaFeedback, `Procesado incompleto. No se detectó N/S. Completa el serial manualmente.`, 'info');
+              if (data.rawText) referencias.observaciones.value = data.rawText;
+              setFeedback(referencias.bandaFeedback, `Incompleto (N/S falló). Revisa "Observaciones" para ver lectura raw.${marca ? ` Marca: ${marca}` : ''}${modelo ? ` Mod: ${modelo}` : ''}`, 'info');
               return;
             }
 

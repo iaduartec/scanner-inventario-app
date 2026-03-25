@@ -586,6 +586,7 @@ export async function processFileScan({ file, modes, fields, onScan, onError }) 
       });
 
       const collectedData = {};
+      const debugTexts = [];
 
       for (const angle of [0, 90, 180, 270]) {
         const isSwapped = angle === 90 || angle === 270;
@@ -601,6 +602,7 @@ export async function processFileScan({ file, modes, fields, onScan, onError }) 
 
         const result = await worker.recognize(canvas);
         const text = result?.data?.text ?? '';
+        debugTexts.push(`[Ángulo ${angle}º]\n${text}`);
 
         for (const currentField of fields) {
           if (!collectedData[currentField]) {
@@ -627,7 +629,8 @@ export async function processFileScan({ file, modes, fields, onScan, onError }) 
         serial: collectedData.sn ?? '',
         mac: collectedData.mac ?? '',
         marca: collectedData.marca ?? '',
-        modelo: collectedData.modelo ?? ''
+        modelo: collectedData.modelo ?? '',
+        rawText: debugTexts.join('\n\n')
       };
       
       return onScan(payload);
