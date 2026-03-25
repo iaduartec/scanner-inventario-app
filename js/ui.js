@@ -176,7 +176,7 @@ export function toggleDuplicateAlert(elemento, visible) {
 export function updateLastCapture({ serialElement: serialElemento, metaElement: metaElemento, record: registro }) {
   serialElemento.textContent = registro?.serial ?? 'Sin lecturas todavía';
   metaElemento.textContent = registro
-    ? `${registro.estado}${registro.mac ? ` · MAC ${registro.mac}` : ''} · ${registro.modelo || 'Sin modelo'} · ${formatDateTime(registro.fechaUltimoMovimiento)}`
+    ? `${registro.estado}${registro.mac ? ` · MAC ${registro.mac}` : ''}${registro.marca ? ` · ${registro.marca}` : ''} · ${registro.modelo || 'Sin modelo'} · ${formatDateTime(registro.fechaUltimoMovimiento)}`
     : 'Esperando el primer escaneo o alta manual.';
 }
 
@@ -188,5 +188,5 @@ export function updateCounters({
 }) {
   contadorRegistros.textContent = `${registros.length} registros`;
   contadorEquiposInstalados.textContent = `${registros.filter((item) => item.estado === 'INSTALADO').length} instalados`;
-  contadorEquiposDesinstalados.textContent = `${registros.filter((item) => item.estado === 'DESINSTALADO').length} desinstalado`;
+  contadorEquiposDesinstalados.textContent = `${registros.filter((item) => item.estado === 'DESINSTALADO').length} desinstalados`;
 }
