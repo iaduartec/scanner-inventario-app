@@ -1,0 +1,10 @@
+{
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-17",
+      "path": "/home/kiri_/projects/scanner-inventario-app/.local-jdk/jdk-21",
+      "default": true
+    }
+  ],
+  "java.jdt.ls.java.home": "/home/kiri_/projects/scanner-inventario-app/.local-jdk/jdk-21"
+}
