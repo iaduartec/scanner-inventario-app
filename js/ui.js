@@ -39,9 +39,11 @@ export function renderRecords({ records: registros, tableBody: cuerpoTabla, onEd
         <tr class="${idSeleccionado === registro.id ? 'is-selected' : ''}">
           <td class="serial-cell">
             <strong>${registro.serial}</strong>
-            <span class="serial-meta">${registro.mac ? `MAC ${registro.mac} · ` : ''}${registro.marca ? `${registro.marca} · ` : ''}${registro.fuenteCaptura} · ${registro.observaciones || 'Sin observaciones'}</span>
+            <span class="serial-meta">${registro.fuenteCaptura} · ${registro.observaciones || 'Sin obj.'}</span>
           </td>
+          <td><strong>${registro.mac || '—'}</strong></td>
           <td><span class="status-pill status-${registro.estado}">${registro.estado}</span></td>
+          <td>${registro.marca || '—'}</td>
           <td>${registro.modelo || '—'}</td>
           <td>${registro.actuacion || '—'}</td>
           <td>${registro.cliente || '—'}</td>
