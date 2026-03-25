@@ -1,6 +1,6 @@
 import { demoRecords } from './demo-data.js';
 import { APP_VERSION } from './constants.js';
-import { startScanner, stopScanner, isScannerActive } from './scanner.js';
+import { startScanner, startSequentialOcrScanner, stopScanner, isScannerActive } from './scanner.js';
 import { loadRecords, saveRecords, loadSettings, saveSettings } from './storage.js';
 import {
   createRecord,
@@ -30,15 +30,24 @@ const state = {
   idEdicion: null,
   idRegistroSeleccionado: null,
   estadoObjetivoEscaneo: 'INSTALADO',
-  scanMode: initialSettings.scanMode ?? 'SN',
+  scanModes: initialSettings.scanModes ?? { qr: false, barcode: false, text: true },
+  ocrFields: initialSettings.ocrFields ?? ['marca', 'modelo', 'sn', 'mac'],
   promptDiferido: null,
 };
 
 const referencias = {
   botonInstalarApp: document.querySelector('#installButton'),
-  botonModoQR: document.querySelector('#scanModeQrButton'),
-  botonModoCodigoBarras: document.querySelector('#scanModeBarcodeButton'),
-  botonModoSN: document.querySelector('#scanModeSnButton'),
+  // Checkboxes de modo
+  checkQr: document.querySelector('#scanModeQr'),
+  checkBarcode: document.querySelector('#scanModeBarcode'),
+  checkText: document.querySelector('#scanModeText'),
+  // OCR field selector
+  ocrFieldSelector: document.querySelector('#ocrFieldSelector'),
+  ocrFieldMarca: document.querySelector('#ocrFieldMarca'),
+  ocrFieldModelo: document.querySelector('#ocrFieldModelo'),
+  ocrFieldSn: document.querySelector('#ocrFieldSn'),
+  ocrFieldMac: document.querySelector('#ocrFieldMac'),
+  // Rest
   etiquetaModoLectura: document.querySelector('#scannerModeLabel'),
   botonEscaneoEquipoInstalado: document.querySelector('#scanEquipoInstaladoButton'),
   botonEscaneoEquipoDesinstalado: document.querySelector('#scanEquipoDesinstaladoButton'),
@@ -58,6 +67,7 @@ const referencias = {
   formularioInventario: document.querySelector('#inventoryForm'),
   idRegistro: document.querySelector('#recordId'),
   serial: document.querySelector('#serial'),
+  marca: document.querySelector('#marca'),
   modelo: document.querySelector('#modelo'),
   estado: document.querySelector('#estado'),
   mac: document.querySelector('#mac'),
@@ -74,21 +84,49 @@ const referencias = {
 };
 
 function getScanModeLabel() {
-  if (state.scanMode === 'QR') return 'QR';
-  if (state.scanMode === 'BARCODE') return 'código de barras';
-  return 'S/N';
+  const labels = [];
+  if (state.scanModes.qr) labels.push('QR');
+  if (state.scanModes.barcode) labels.push('Barras');
+  if (state.scanModes.text) labels.push('Texto');
+  return labels.length ? labels.join(' + ') : 'Sin modo';
 }
 
-async function setScanMode(mode) {
-  if (state.scanMode === mode) return;
-  state.scanMode = mode;
-  saveSettings({ ...loadSettings(), scanMode: mode });
-  if (isScannerActive()) {
-    await stopScanner();
+function getSelectedOcrFields() {
+  const fields = [];
+  if (referencias.ocrFieldMarca?.checked) fields.push('marca');
+  if (referencias.ocrFieldModelo?.checked) fields.push('modelo');
+  if (referencias.ocrFieldSn?.checked) fields.push('sn');
+  if (referencias.ocrFieldMac?.checked) fields.push('mac');
+  return fields;
+}
+
+function syncCheckboxesToState() {
+  state.scanModes = {
+    qr: referencias.checkQr?.checked ?? false,
+    barcode: referencias.checkBarcode?.checked ?? false,
+    text: referencias.checkText?.checked ?? false,
+  };
+  state.ocrFields = getSelectedOcrFields();
+  saveSettings({ ...loadSettings(), scanModes: state.scanModes, ocrFields: state.ocrFields });
+}
+
+function syncStateToCheckboxes() {
+  if (referencias.checkQr) referencias.checkQr.checked = state.scanModes.qr;
+  if (referencias.checkBarcode) referencias.checkBarcode.checked = state.scanModes.barcode;
+  if (referencias.checkText) referencias.checkText.checked = state.scanModes.text;
+
+  // OCR field checkboxes
+  const ocrFields = state.ocrFields;
+  if (referencias.ocrFieldMarca) referencias.ocrFieldMarca.checked = ocrFields.includes('marca');
+  if (referencias.ocrFieldModelo) referencias.ocrFieldModelo.checked = ocrFields.includes('modelo');
+  if (referencias.ocrFieldSn) referencias.ocrFieldSn.checked = ocrFields.includes('sn');
+  if (referencias.ocrFieldMac) referencias.ocrFieldMac.checked = ocrFields.includes('mac');
+}
+
+function updateOcrFieldSelectorVisibility() {
+  if (referencias.ocrFieldSelector) {
+    referencias.ocrFieldSelector.classList.toggle('hidden', !state.scanModes.text);
   }
-  setScannerLabel();
-  refreshUi();
-  setFeedback(referencias.bandaFeedback, `Modo de lectura cambiado a ${getScanModeLabel()}.`, 'info');
 }
 
 function beep(success = true) {
@@ -119,7 +157,7 @@ function getFilteredRecords() {
     .filter((record) => (state.filtro === 'TODOS' ? true : record.estado === state.filtro))
     .filter((record) => {
       if (!search) return true;
-      return [record.serial, record.mac, record.modelo, record.cliente, record.tecnico, record.ubicacion]
+      return [record.serial, record.mac, record.modelo, record.marca, record.cliente, record.tecnico, record.ubicacion]
         .join(' ')
         .toLowerCase()
         .includes(search);
@@ -175,12 +213,7 @@ function refreshUi() {
     equipoDesinstaladoCount: referencias.contadorEquiposDesinstalados,
   });
   updateNetworkStatus();
-  referencias.botonModoQR.classList.toggle('is-active', state.scanMode === 'QR');
-  referencias.botonModoCodigoBarras.classList.toggle('is-active', state.scanMode === 'BARCODE');
-  referencias.botonModoSN.classList.toggle('is-active', state.scanMode === 'SN');
-  referencias.botonModoQR.setAttribute('aria-pressed', String(state.scanMode === 'QR'));
-  referencias.botonModoCodigoBarras.setAttribute('aria-pressed', String(state.scanMode === 'BARCODE'));
-  referencias.botonModoSN.setAttribute('aria-pressed', String(state.scanMode === 'SN'));
+  updateOcrFieldSelectorVisibility();
 }
 
 function setScannerLabel() {
@@ -216,6 +249,7 @@ function fillForm(record) {
   referencias.idRegistro.value = record.id;
   referencias.serial.value = record.serial;
   referencias.mac.value = record.mac ?? '';
+  referencias.marca.value = record.marca ?? '';
   referencias.modelo.value = record.modelo;
   referencias.estado.value = record.estado;
   referencias.cliente.value = record.cliente;
@@ -264,6 +298,7 @@ function getScanPayload(scanResult) {
     return {
       serial: scanResult,
       mac: '',
+      marca: '',
       modelo: '',
     };
   }
@@ -271,6 +306,7 @@ function getScanPayload(scanResult) {
   return {
     serial: scanResult?.serial ?? '',
     mac: scanResult?.mac ?? '',
+    marca: scanResult?.marca ?? '',
     modelo: scanResult?.modelo ?? '',
   };
 }
@@ -279,6 +315,7 @@ async function handleScan(scanResult) {
   const payload = getScanPayload(scanResult);
   const serial = normalizeSerial(payload.serial);
   const mac = normalizeMac(payload.mac);
+  const marca = String(payload.marca ?? '').trim();
   const modelo = String(payload.modelo ?? '').trim();
   const duplicate = findDuplicate(serial);
   toggleDuplicateAlert(referencias.alertaDuplicado, Boolean(duplicate));
@@ -290,6 +327,10 @@ async function handleScan(scanResult) {
       cambios.push(`MAC ${mac}`);
     }
 
+    if (marca && !duplicate.marca) {
+      cambios.push(`marca ${marca}`);
+    }
+
     if (modelo && !duplicate.modelo) {
       cambios.push(`modelo ${modelo}`);
     }
@@ -298,7 +339,8 @@ async function handleScan(scanResult) {
       const updatedRecord = createRecord(
         {
           ...duplicate,
-          mac,
+          mac: mac || duplicate.mac,
+          marca: marca || duplicate.marca,
           modelo: modelo || duplicate.modelo,
           fuenteCaptura: duplicate.fuenteCaptura ?? 'camara',
         },
@@ -333,6 +375,7 @@ async function handleScan(scanResult) {
   const record = createRecord({
     serial,
     mac,
+    marca,
     modelo,
     estado: state.estadoObjetivoEscaneo,
     cliente: referencias.cliente.value,
@@ -352,6 +395,7 @@ async function handleScan(scanResult) {
     [
       `Escaneo correcto: ${serial}`,
       mac ? `MAC ${mac}` : null,
+      marca ? `marca ${marca}` : null,
       modelo ? `modelo ${modelo}` : null,
     ]
       .filter(Boolean)
@@ -362,18 +406,75 @@ async function handleScan(scanResult) {
 }
 
 async function activateScanner(estadoObjetivo) {
+  syncCheckboxesToState();
   state.estadoObjetivoEscaneo = estadoObjetivo;
   referencias.estado.value = estadoObjetivo;
   setFeedback(referencias.bandaFeedback, 'Inicializando cámara...', 'info');
   setScannerLabel();
 
+  const modes = state.scanModes;
+  const hasAnyMode = modes.qr || modes.barcode || modes.text;
+
+  if (!hasAnyMode) {
+    setFeedback(referencias.bandaFeedback, 'Selecciona al menos un modo de escaneo (QR, Código de barras o Texto).', 'error');
+    return;
+  }
+
   try {
-    await startScanner({
-      elementId: 'reader',
-      scanMode: state.scanMode,
-      onScan: (decodedText) => handleScan(decodedText),
-      onError: () => {},
-    });
+    if (modes.text) {
+      const fields = getSelectedOcrFields();
+      if (!fields.length) {
+        setFeedback(referencias.bandaFeedback, 'Selecciona al menos un campo OCR para escanear.', 'error');
+        return;
+      }
+
+      await startSequentialOcrScanner({
+        elementId: 'reader',
+        fields,
+        onFieldScan: (field, value, skipped) => {
+          const fieldLabels = { marca: 'Marca', modelo: 'Modelo', sn: 'N/S', mac: 'MAC' };
+          const label = fieldLabels[field] ?? field;
+          if (skipped) {
+            setFeedback(referencias.bandaFeedback, `${label}: no detectado, dejado en blanco.`, 'info');
+          } else {
+            setFeedback(referencias.bandaFeedback, `${label}: "${value}" capturado.`, 'success');
+            beep(true);
+          }
+        },
+        onComplete: async (collectedData) => {
+          setScannerLabel();
+          // Map OCR fields to form and create record
+          const serial = collectedData.sn ?? '';
+          const mac = collectedData.mac ?? '';
+          const marca = collectedData.marca ?? '';
+          const modelo = collectedData.modelo ?? '';
+
+          if (!serial) {
+            // Populate form for manual completion
+            if (marca) referencias.marca.value = marca;
+            if (modelo) referencias.modelo.value = modelo;
+            if (mac) referencias.mac.value = mac;
+            setFeedback(
+              referencias.bandaFeedback,
+              `Escaneo completado. No se detectó N/S. Completa el serial manualmente.${marca ? ` Marca: ${marca}` : ''}${modelo ? ` Modelo: ${modelo}` : ''}${mac ? ` MAC: ${mac}` : ''}`,
+              'info',
+            );
+            return;
+          }
+
+          await handleScan({ serial, mac, marca, modelo });
+        },
+        onError: () => {},
+      });
+    } else {
+      await startScanner({
+        elementId: 'reader',
+        modes,
+        onScan: (decodedText) => handleScan(decodedText),
+        onError: () => {},
+      });
+    }
+
     setScannerLabel();
     setFeedback(
       referencias.bandaFeedback,
@@ -491,10 +592,26 @@ function setupInstallPrompt() {
   });
 }
 
+function handleScanModeChange() {
+  syncCheckboxesToState();
+  updateOcrFieldSelectorVisibility();
+  setScannerLabel();
+  const modeLabel = getScanModeLabel();
+  setFeedback(referencias.bandaFeedback, `Modo de lectura: ${modeLabel}.`, 'info');
+}
+
 function bindEvents() {
-  referencias.botonModoQR.addEventListener('click', () => setScanMode('QR'));
-  referencias.botonModoCodigoBarras.addEventListener('click', () => setScanMode('BARCODE'));
-  referencias.botonModoSN.addEventListener('click', () => setScanMode('SN'));
+  // Scan mode checkboxes
+  referencias.checkQr?.addEventListener('change', handleScanModeChange);
+  referencias.checkBarcode?.addEventListener('change', handleScanModeChange);
+  referencias.checkText?.addEventListener('change', handleScanModeChange);
+
+  // OCR field checkboxes
+  referencias.ocrFieldMarca?.addEventListener('change', () => syncCheckboxesToState());
+  referencias.ocrFieldModelo?.addEventListener('change', () => syncCheckboxesToState());
+  referencias.ocrFieldSn?.addEventListener('change', () => syncCheckboxesToState());
+  referencias.ocrFieldMac?.addEventListener('change', () => syncCheckboxesToState());
+
   referencias.botonEscaneoEquipoInstalado.addEventListener('click', () => activateScanner('INSTALADO'));
   referencias.botonEscaneoEquipoDesinstalado.addEventListener('click', () => activateScanner('DESINSTALADO'));
   referencias.botonDetenerCamara.addEventListener('click', async () => {
@@ -541,6 +658,10 @@ function init() {
   bindEvents();
   registerServiceWorker();
   setupInstallPrompt();
+
+  // Restore checkbox states from settings
+  syncStateToCheckboxes();
+  updateOcrFieldSelectorVisibility();
 
   const [latest] = getFilteredRecords();
   state.idRegistroSeleccionado = latest?.id ?? null;

@@ -1,15 +1,20 @@
 import { normalizeMac, normalizeSerial, normalizeText } from './utils.js';
 
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent) || isIOS;
+
 const BARCODE_FORMATS = [
   Html5QrcodeSupportedFormats.CODE_128,
   Html5QrcodeSupportedFormats.CODE_39,
   Html5QrcodeSupportedFormats.CODE_93,
-  Html5QrcodeSupportedFormats.CODABAR,
   Html5QrcodeSupportedFormats.EAN_13,
   Html5QrcodeSupportedFormats.EAN_8,
-  Html5QrcodeSupportedFormats.ITF,
-  Html5QrcodeSupportedFormats.UPC_A,
-  Html5QrcodeSupportedFormats.UPC_E,
+];
+
+const BARCODE_FORMATS_IOS = [
+  Html5QrcodeSupportedFormats.CODE_128,
+  Html5QrcodeSupportedFormats.EAN_13,
+  Html5QrcodeSupportedFormats.EAN_8,
 ];
 
 const OCR_SERIAL_PATTERNS = [
@@ -23,6 +28,10 @@ const OCR_MODEL_PATTERNS = [
 
 const OCR_MAC_PATTERNS = [
   /MAC\s*[:\-]?\s*([0-9A-FOIL]{2}(?:[-:\s]?[0-9A-FOIL]{2}){5})/i,
+];
+
+const OCR_BRAND_PATTERNS = [
+  /(?:BRAND|MARCA)\s*[:\-]?\s*(.+)/i,
 ];
 
 let activeScanner = null;
@@ -45,6 +54,15 @@ function clearContainer(container) {
   container.innerHTML = '';
 }
 
+function injectScanLine(parent) {
+  const existing = parent.querySelector('.scan-line');
+  if (existing) return;
+  const line = document.createElement('div');
+  line.className = 'scan-line';
+  parent.style.position = 'relative';
+  parent.appendChild(line);
+}
+
 function getQrBox(viewfinderWidth, viewfinderHeight, scanMode) {
   if (scanMode === 'QR') {
     const size = Math.max(220, Math.min(viewfinderWidth, viewfinderHeight, 320));
@@ -56,23 +74,38 @@ function getQrBox(viewfinderWidth, viewfinderHeight, scanMode) {
   return { width, height };
 }
 
-function getScannerConfig(scanMode) {
-  if (scanMode === 'QR') {
-    return {
-      fps: 10,
-      qrbox: (viewfinderWidth, viewfinderHeight) => getQrBox(viewfinderWidth, viewfinderHeight, scanMode),
-      formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-    };
+function getFormatsForModes(modes) {
+  const formats = [];
+  if (modes.qr) {
+    formats.push(Html5QrcodeSupportedFormats.QR_CODE);
   }
+  if (modes.barcode) {
+    const barcodeFormats = isSafari ? BARCODE_FORMATS_IOS : BARCODE_FORMATS;
+    formats.push(...barcodeFormats);
+  }
+  return formats;
+}
+
+function getScannerConfig(modes) {
+  const hasQr = modes.qr;
+  const hasBarcode = modes.barcode;
+  const isQrOnly = hasQr && !hasBarcode;
+
+  const qrBoxMode = isQrOnly ? 'QR' : 'BARCODE';
 
   return {
-    fps: 12,
-    qrbox: (viewfinderWidth, viewfinderHeight) => getQrBox(viewfinderWidth, viewfinderHeight, scanMode),
-    formatsToSupport: BARCODE_FORMATS,
+    fps: isSafari ? 8 : 12,
+    qrbox: (viewfinderWidth, viewfinderHeight) => getQrBox(viewfinderWidth, viewfinderHeight, qrBoxMode),
+    formatsToSupport: getFormatsForModes(modes),
   };
 }
 
-async function getPreferredBarcodeCameraConfig() {
+async function getPreferredCameraConfig() {
+  // Safari/iOS: never call getCameras(), use direct constraints
+  if (isSafari) {
+    return [{ facingMode: 'environment' }];
+  }
+
   if (typeof globalThis.Html5Qrcode?.getCameras !== 'function') {
     return [{ facingMode: { ideal: 'environment' } }];
   }
@@ -95,9 +128,14 @@ async function getPreferredBarcodeCameraConfig() {
       { facingMode: { ideal: 'environment' } },
       preferredConfig,
       { facingMode: 'environment' },
+      { facingMode: 'user' },
     ];
   } catch {
-    return [{ facingMode: { ideal: 'environment' } }];
+    return [
+      { facingMode: { ideal: 'environment' } },
+      { facingMode: 'environment' },
+      { facingMode: 'user' },
+    ];
   }
 }
 
@@ -108,7 +146,7 @@ function normalizeOcrText(text) {
     .replace(/\r/g, '\n');
 }
 
-function extractSerialFromOcr(text) {
+function extractFromOcr(text, patterns) {
   const normalizedText = normalizeOcrText(text);
   const lines = normalizedText
     .split('\n')
@@ -118,24 +156,23 @@ function extractSerialFromOcr(text) {
   const candidates = [...lines, normalizedText.replace(/\s+/g, ' ')];
 
   for (const candidate of candidates) {
-    for (const pattern of OCR_SERIAL_PATTERNS) {
+    for (const pattern of patterns) {
       const match = candidate.match(pattern);
       if (match?.[1]) {
-        return normalizeSerial(match[1]);
+        return match[1].trim();
       }
     }
   }
 
+  // Try merging consecutive lines for multi-line labels
   for (let index = 0; index < lines.length; index += 1) {
     const current = lines[index].replace(/\s+/g, ' ');
-    if (/S\s*\/\s*N/i.test(current) || /\bSN\b/i.test(current)) {
-      const nextLine = lines[index + 1] ?? '';
-      const merged = `${current} ${nextLine}`.trim();
-      for (const pattern of OCR_SERIAL_PATTERNS) {
-        const match = merged.match(pattern);
-        if (match?.[1]) {
-          return normalizeSerial(match[1]);
-        }
+    const nextLine = lines[index + 1] ?? '';
+    const merged = `${current} ${nextLine}`.trim();
+    for (const pattern of patterns) {
+      const match = merged.match(pattern);
+      if (match?.[1]) {
+        return match[1].trim();
       }
     }
   }
@@ -143,77 +180,41 @@ function extractSerialFromOcr(text) {
   return null;
 }
 
+function extractSerialFromOcr(text) {
+  const raw = extractFromOcr(text, OCR_SERIAL_PATTERNS);
+  return raw ? normalizeSerial(raw) : null;
+}
+
 function extractMacFromOcr(text) {
-  const normalizedText = normalizeOcrText(text);
-  const lines = normalizedText
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  const candidates = [...lines, normalizedText.replace(/\s+/g, ' ')];
-
-  for (const candidate of candidates) {
-    for (const pattern of OCR_MAC_PATTERNS) {
-      const match = candidate.match(pattern);
-      if (match?.[1]) {
-        return normalizeMac(match[1]);
-      }
-    }
-  }
-
-  for (let index = 0; index < lines.length; index += 1) {
-    const current = lines[index].replace(/\s+/g, ' ');
-    if (/MAC/i.test(current)) {
-      const nextLine = lines[index + 1] ?? '';
-      const merged = `${current} ${nextLine}`.trim();
-      for (const pattern of OCR_MAC_PATTERNS) {
-        const match = merged.match(pattern);
-        if (match?.[1]) {
-          return normalizeMac(match[1]);
-        }
-      }
-    }
-  }
-
-  return '';
+  const raw = extractFromOcr(text, OCR_MAC_PATTERNS);
+  return raw ? normalizeMac(raw) : '';
 }
 
 function extractModelFromOcr(text) {
-  const normalizedText = normalizeOcrText(text);
-  const lines = normalizedText
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  const candidates = [...lines, normalizedText.replace(/\s+/g, ' ')];
-
-  for (const candidate of candidates) {
-    for (const pattern of OCR_MODEL_PATTERNS) {
-      const match = candidate.match(pattern);
-      if (match?.[1]) {
-        return normalizeText(match[1].replace(/\s+/g, ' '));
-      }
-    }
-  }
-
-  for (let index = 0; index < lines.length; index += 1) {
-    const current = lines[index].replace(/\s+/g, ' ');
-    if (/MODEL|MODELO/i.test(current)) {
-      const nextLine = lines[index + 1] ?? '';
-      const merged = `${current} ${nextLine}`.trim();
-      for (const pattern of OCR_MODEL_PATTERNS) {
-        const match = merged.match(pattern);
-        if (match?.[1]) {
-          return normalizeText(match[1].replace(/\s+/g, ' '));
-        }
-      }
-    }
-  }
-
-  return '';
+  const raw = extractFromOcr(text, OCR_MODEL_PATTERNS);
+  return raw ? normalizeText(raw.replace(/\s+/g, ' ')) : '';
 }
 
-async function startBarcodeScanner({ elementId, scanMode, onScan, onError }) {
+function extractBrandFromOcr(text) {
+  const raw = extractFromOcr(text, OCR_BRAND_PATTERNS);
+  return raw ? normalizeText(raw.replace(/\s+/g, ' ')) : '';
+}
+
+const OCR_FIELD_EXTRACTORS = {
+  marca: extractBrandFromOcr,
+  modelo: extractModelFromOcr,
+  sn: extractSerialFromOcr,
+  mac: extractMacFromOcr,
+};
+
+const OCR_FIELD_LABELS = {
+  marca: 'Marca',
+  modelo: 'Modelo',
+  sn: 'N/S (Serial)',
+  mac: 'MAC',
+};
+
+async function startBarcodeScanner({ elementId, modes, onScan, onError }) {
   if (typeof Html5Qrcode !== 'function') {
     throw new Error('La librería de códigos de barras no está disponible.');
   }
@@ -221,19 +222,24 @@ async function startBarcodeScanner({ elementId, scanMode, onScan, onError }) {
   const container = getScannerContainer(elementId);
   clearContainer(container);
 
-  const html5Qrcode = new Html5Qrcode(elementId, { formatsToSupport: BARCODE_FORMATS });
+  const formats = getFormatsForModes(modes);
+
+  // On Safari, don't pass formats to constructor to avoid initialization errors
+  const constructorOptions = isSafari ? {} : { formatsToSupport: formats };
+  const html5Qrcode = new Html5Qrcode(elementId, constructorOptions);
+
   const successCallback = async (decodedText) => {
     await stopScanner();
     await Promise.resolve(onScan(decodedText));
   };
 
-  const cameraConfigs = await getPreferredBarcodeCameraConfig();
+  const cameraConfigs = await getPreferredCameraConfig();
   let lastError = null;
 
   try {
     for (const cameraConfig of cameraConfigs) {
       try {
-        await html5Qrcode.start(cameraConfig, getScannerConfig(scanMode), successCallback, onError);
+        await html5Qrcode.start(cameraConfig, getScannerConfig(modes), successCallback, onError);
         lastError = null;
         break;
       } catch (error) {
@@ -249,8 +255,13 @@ async function startBarcodeScanner({ elementId, scanMode, onScan, onError }) {
     throw lastError;
   }
 
+  // Inject red scan line after camera starts
+  requestAnimationFrame(() => {
+    injectScanLine(container);
+  });
+
   activeScanner = {
-    mode: scanMode,
+    mode: 'barcode',
     html5Qrcode,
     container,
   };
@@ -264,6 +275,21 @@ function ensureCanvas(width, height) {
 }
 
 async function getRearCameraStream() {
+  // Safari-safe: use simple constraints first
+  if (isSafari) {
+    try {
+      return await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: 'environment' },
+      });
+    } catch {
+      return navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: true,
+      });
+    }
+  }
+
   const preferredConstraints = {
     audio: false,
     video: {
@@ -287,7 +313,10 @@ function stopMediaStream(stream) {
   stream?.getTracks?.().forEach((track) => track.stop());
 }
 
-async function startOcrScanner({ elementId, onScan, onError }) {
+/**
+ * Sequential OCR scanner that cycles through selected fields.
+ */
+export async function startSequentialOcrScanner({ elementId, fields, onFieldScan, onComplete, onError }) {
   if (!window.Tesseract?.createWorker) {
     throw new Error('La librería OCR no está disponible.');
   }
@@ -303,15 +332,28 @@ async function startOcrScanner({ elementId, onScan, onError }) {
   video.autoplay = true;
   video.playsInline = true;
   video.muted = true;
+  video.setAttribute('playsinline', '');
+  video.setAttribute('webkit-playsinline', '');
 
   const overlay = document.createElement('div');
   overlay.className = 'ocr-overlay';
-  overlay.textContent = 'Apunta a la línea S/N y MAC y mantenla centrada un momento.';
 
-  frame.append(video, overlay);
+  const fieldIndicator = document.createElement('div');
+  fieldIndicator.className = 'ocr-field-indicator';
+
+  frame.append(video, overlay, fieldIndicator);
   container.append(frame);
 
-  const stream = await getRearCameraStream();
+  // Inject red scan line
+  injectScanLine(frame);
+
+  let stream;
+  try {
+    stream = await getRearCameraStream();
+  } catch (err) {
+    clearContainer(container);
+    throw new Error(`No se pudo acceder a la cámara. Verifica permisos. ${err.message}`);
+  }
 
   video.srcObject = stream;
   await video.play();
@@ -320,8 +362,26 @@ async function startOcrScanner({ elementId, onScan, onError }) {
   const canvas = ensureCanvas(1600, 1200);
   const context = canvas.getContext('2d', { willReadFrequently: true });
 
+  const collectedData = {};
+  let fieldIndex = 0;
+  const fieldQueue = [...fields];
+
+  function updateFieldDisplay() {
+    if (fieldIndex >= fieldQueue.length) return;
+    const currentField = fieldQueue[fieldIndex];
+    const label = OCR_FIELD_LABELS[currentField] ?? currentField;
+    const progress = `${fieldIndex + 1}/${fieldQueue.length}`;
+    overlay.textContent = `Apunta a la etiqueta "${label}" del equipo y mantenla centrada.`;
+    fieldIndicator.innerHTML = `<span class="field-badge active">${label}</span> <span class="field-progress">${progress}</span>`;
+    // Show remaining fields
+    const remaining = fieldQueue.slice(fieldIndex + 1).map(f => OCR_FIELD_LABELS[f] ?? f);
+    if (remaining.length) {
+      fieldIndicator.innerHTML += ` <span class="field-remaining">→ ${remaining.join(' → ')}</span>`;
+    }
+  }
+
   const scannerState = {
-    mode: 'SN',
+    mode: 'sequential-ocr',
     container,
     stream,
     video,
@@ -333,8 +393,18 @@ async function startOcrScanner({ elementId, onScan, onError }) {
     timerId: null,
   };
 
+  updateFieldDisplay();
+
+  const AUTO_SKIP_TIMEOUT = 15000; // 15 seconds per field
+  let fieldStartTime = Date.now();
+
   const scanFrame = async () => {
     if (scannerState.stopped) return;
+    if (fieldIndex >= fieldQueue.length) {
+      await stopScanner();
+      await Promise.resolve(onComplete(collectedData));
+      return;
+    }
     if (scannerState.busy) {
       scannerState.timerId = window.setTimeout(scanFrame, 250);
       return;
@@ -342,6 +412,23 @@ async function startOcrScanner({ elementId, onScan, onError }) {
 
     if (!scannerState.video.videoWidth || !scannerState.video.videoHeight) {
       scannerState.timerId = window.setTimeout(scanFrame, 250);
+      return;
+    }
+
+    // Auto-skip if timeout exceeded — leave field blank
+    if (Date.now() - fieldStartTime > AUTO_SKIP_TIMEOUT) {
+      const currentField = fieldQueue[fieldIndex];
+      collectedData[currentField] = '';
+      onFieldScan?.(currentField, '', true);
+      fieldIndex += 1;
+      fieldStartTime = Date.now();
+      updateFieldDisplay();
+      if (fieldIndex >= fieldQueue.length) {
+        await stopScanner();
+        await Promise.resolve(onComplete(collectedData));
+        return;
+      }
+      scannerState.timerId = window.setTimeout(scanFrame, 300);
       return;
     }
 
@@ -372,14 +459,25 @@ async function startOcrScanner({ elementId, onScan, onError }) {
 
       const result = await scannerState.worker.recognize(scannerState.canvas);
       const text = result?.data?.text ?? '';
-      const serial = extractSerialFromOcr(text);
-      const mac = extractMacFromOcr(text);
-      const modelo = extractModelFromOcr(text);
 
-      if (serial) {
-        await stopScanner();
-        await Promise.resolve(onScan({ serial, mac, modelo, rawText: text }));
-        return;
+      const currentField = fieldQueue[fieldIndex];
+      const extractor = OCR_FIELD_EXTRACTORS[currentField];
+
+      if (extractor) {
+        const value = extractor(text);
+        if (value) {
+          collectedData[currentField] = value;
+          onFieldScan?.(currentField, value, false);
+          fieldIndex += 1;
+          fieldStartTime = Date.now();
+          updateFieldDisplay();
+
+          if (fieldIndex >= fieldQueue.length) {
+            await stopScanner();
+            await Promise.resolve(onComplete(collectedData));
+            return;
+          }
+        }
       }
     } catch (error) {
       onError?.(error);
@@ -396,15 +494,40 @@ async function startOcrScanner({ elementId, onScan, onError }) {
   scannerState.timerId = window.setTimeout(scanFrame, 500);
 }
 
-export async function startScanner({ elementId, scanMode = 'BARCODE', onScan, onError = () => {} }) {
+/**
+ * Legacy single-pass OCR scanner (kept for backwards compatibility).
+ */
+async function startOcrScanner({ elementId, onScan, onError }) {
+  await startSequentialOcrScanner({
+    elementId,
+    fields: ['sn', 'mac', 'modelo'],
+    onFieldScan: () => {},
+    onComplete: (data) => {
+      onScan({
+        serial: data.sn ?? '',
+        mac: data.mac ?? '',
+        modelo: data.modelo ?? '',
+        rawText: '',
+      });
+    },
+    onError,
+  });
+}
+
+export async function startScanner({ elementId, modes, onScan, onError = () => {} }) {
   await stopScanner();
 
-  if (scanMode === 'SN') {
+  if (modes.text) {
     await startOcrScanner({ elementId, onScan, onError });
     return;
   }
 
-  await startBarcodeScanner({ elementId, scanMode, onScan, onError });
+  if (modes.qr || modes.barcode) {
+    await startBarcodeScanner({ elementId, modes, onScan, onError });
+    return;
+  }
+
+  throw new Error('Selecciona al menos un modo de escaneo (QR, Código de barras o Texto).');
 }
 
 export async function stopScanner() {
@@ -420,7 +543,7 @@ export async function stopScanner() {
   scanner.stopped = true;
 
   try {
-    if (scanner.mode === 'SN') {
+    if (scanner.mode === 'sequential-ocr' || scanner.mode === 'SN') {
       stopMediaStream(scanner.stream);
       await scanner.worker?.terminate?.();
     } else {
@@ -436,4 +559,12 @@ export async function stopScanner() {
 
 export function isScannerActive() {
   return Boolean(activeScanner);
+}
+
+/**
+ * Manually skip the current OCR field (leaves it blank).
+ */
+export function skipCurrentOcrField() {
+  // No-op: auto-skip via timeout handles this.
+  // This is a hook for future manual skip button.
 }

@@ -106,10 +106,20 @@
             <span id="connectionBadge" class="badge badge-muted">Sincronía local</span>
           </div>
 
-          <div class="scan-mode-switch" role="tablist" aria-label="Modo de lectura">
-            <button id="scanModeQrButton" class="mode-chip" type="button">QR</button>
-            <button id="scanModeBarcodeButton" class="mode-chip" type="button">Código de barras</button>
-            <button id="scanModeSnButton" class="mode-chip" type="button">S/N</button>
+          <div class="scan-mode-switch" aria-label="Modo de lectura">
+            <label class="mode-check"><input type="checkbox" id="scanModeQr" /> <span>QR</span></label>
+            <label class="mode-check"><input type="checkbox" id="scanModeBarcode" /> <span>Código de barras</span></label>
+            <label class="mode-check"><input type="checkbox" id="scanModeText" checked /> <span>Texto (OCR)</span></label>
+          </div>
+
+          <div id="ocrFieldSelector" class="ocr-field-selector">
+            <p class="eyebrow">Campos a escanear por OCR</p>
+            <div class="ocr-field-checks">
+              <label class="field-check"><input type="checkbox" id="ocrFieldMarca" checked /> <span>Marca</span></label>
+              <label class="field-check"><input type="checkbox" id="ocrFieldModelo" checked /> <span>Modelo</span></label>
+              <label class="field-check"><input type="checkbox" id="ocrFieldSn" checked /> <span>N/S</span></label>
+              <label class="field-check"><input type="checkbox" id="ocrFieldMac" checked /> <span>MAC</span></label>
+            </div>
           </div>
 
           <div class="quick-actions" role="group" aria-label="Acciones principales de escaneo">
@@ -167,6 +177,10 @@
               <label>
                 <span>MAC</span>
                 <input id="mac" name="mac" type="text" inputmode="text" autocomplete="off" placeholder="Ej. 2C-95-7F-5D-A5-C3" />
+              </label>
+              <label>
+                <span>Marca</span>
+                <input id="marca" name="marca" type="text" autocomplete="off" placeholder="Marca del equipo" />
               </label>
               <label>
                 <span>Modelo</span>

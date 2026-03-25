@@ -90,6 +90,7 @@ test('toCsv incluye cabecera y BOM UTF-8', () => {
       id: '1',
       serial: '001AE8FBDDED',
       mac: '2C-95-7F-5D-A5-C3',
+      marca: 'Cisco',
       modelo: 'Motorola',
       estado: 'DESINSTALADO',
       cliente: 'Cliente',
@@ -102,6 +103,6 @@ test('toCsv incluye cabecera y BOM UTF-8', () => {
     },
   ]);
 
-  assert.ok(csv.startsWith('\uFEFFid;serial;mac;modelo;estado'));
+  assert.ok(csv.startsWith('\uFEFFid;serial;mac;marca;modelo;estado'));
   assert.match(csv, /001AE8FBDDED/);
 });
