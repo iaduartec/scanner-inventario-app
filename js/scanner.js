@@ -359,6 +359,9 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
   await video.play();
 
   const worker = await window.Tesseract.createWorker('eng', 1, OCR_ASSETS);
+  await worker.setParameters({
+    tessedit_pageseg_mode: '11', // SPARSE_TEXT: ignora bloques gráficos pesados (barcodes) y pilla todo el texto
+  });
   const canvas = ensureCanvas(1600, 1200);
   const context = canvas.getContext('2d', { willReadFrequently: true });
 
@@ -577,6 +580,9 @@ export async function processFileScan({ file, modes, fields, onScan, onError }) 
         throw new Error('La librería OCR no está disponible.');
       }
       const worker = await window.Tesseract.createWorker('eng', 1, OCR_ASSETS);
+      await worker.setParameters({
+        tessedit_pageseg_mode: '11', // SPARSE_TEXT
+      });
       const imgUrl = URL.createObjectURL(file);
       const img = new Image();
       await new Promise((resolve, reject) => {
