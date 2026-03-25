@@ -21,11 +21,11 @@ export function renderFilterChips(contenedor, filtroActivo, alCambiar) {
   });
 }
 
-export function renderRecords({ records: registros, tableBody: cuerpoTabla, onEdit: alEditar, onDelete: alEliminar, onSelect: alSeleccionar, selectedId: idSeleccionado }) {
+export function renderRecords({ records: registros, tableBody: cuerpoTabla, onEdit: alEditar, onDelete: alEliminar }) {
   if (!registros.length) {
     cuerpoTabla.innerHTML = `
       <tr>
-        <td colspan="8" class="empty-state">
+        <td colspan="7" class="empty-state">
           No hay registros para este filtro. Escanea un equipo o crea uno manualmente.
         </td>
       </tr>
@@ -36,7 +36,7 @@ export function renderRecords({ records: registros, tableBody: cuerpoTabla, onEd
   cuerpoTabla.innerHTML = registros
     .map(
       (registro) => `
-        <tr class="${idSeleccionado === registro.id ? 'is-selected' : ''}">
+        <tr>
           <td class="serial-cell">
             <strong>${registro.serial}</strong>
             <span class="serial-meta">${registro.fuenteCaptura} · ${registro.observaciones || 'Sin obj.'}</span>
