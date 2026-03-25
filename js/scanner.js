@@ -477,6 +477,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
     startTime: Date.now(),
     autoZoomStage: 0,
     fullQueueLength: fieldQueue.length,
+    prefsKey: 'scanner_prefs_v1',
   };
 
   try {
@@ -489,13 +490,26 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
         await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
       }
 
-      // Start at 2x by default as requested by user
+      // Start at saved preference or 2x by default
       if (scannerState.capabilities.zoom) {
-        const { max } = scannerState.capabilities.zoom;
-        const initialZoom = Math.min(2, max);
-        await track.applyConstraints({ advanced: [{ zoom: initialZoom }] });
-        scannerState.currentZoom = initialZoom;
-        scannerState.autoZoomStage = 1; // Already at 2x
+        const { min, max } = scannerState.capabilities.zoom;
+        let initialZoom = 2; // Default
+        
+        try {
+          const saved = localStorage.getItem(scannerState.prefsKey);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed.zoom) initialZoom = parsed.zoom;
+          }
+        } catch (e) {}
+
+        const clampedZoom = Math.max(min, Math.min(initialZoom, max));
+        await track.applyConstraints({ advanced: [{ zoom: clampedZoom }] });
+        scannerState.currentZoom = clampedZoom;
+        
+        // Adjust auto-zoom stage based on starting point
+        if (clampedZoom >= 3) scannerState.autoZoomStage = 2;
+        else if (clampedZoom >= 2) scannerState.autoZoomStage = 1;
       }
     }
   } catch (err) {
@@ -533,6 +547,14 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
 
   const stillnessCanvas = ensureCanvas(32, 24);
   const stillnessCtx = stillnessCanvas.getContext('2d', { willReadFrequently: true });
+
+  const savePrefs = () => {
+    try {
+      localStorage.setItem(scannerState.prefsKey, JSON.stringify({
+        zoom: scannerState.currentZoom
+      }));
+    } catch (e) {}
+  };
 
   const captureSnapshot = async () => {
     if (scannerState.busy || scannerState.stopped) return;
@@ -604,6 +626,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
         lastFoundTime = Date.now();
         updateFieldDisplay();
         if (fieldQueue.length === 0) {
+          savePrefs();
           await stopScanner();
           await Promise.resolve(onComplete({ ...collectedData, rawText: allRawTexts.join('\n\n') }));
           return;
@@ -666,6 +689,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
   const scanFrame = async () => {
     if (scannerState.stopped) return;
     if (fieldQueue.length === 0) {
+      savePrefs();
       await stopScanner();
       await Promise.resolve(onComplete({ ...collectedData, rawText: allRawTexts.join('\n\n') }));
       return;
@@ -711,6 +735,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
       }
       fieldQueue = [];
       updateFieldDisplay();
+      savePrefs();
       await stopScanner();
       await Promise.resolve(onComplete({ ...collectedData, rawText: allRawTexts.join('\n\n') }));
       return;
@@ -797,6 +822,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
         updateFieldDisplay();
 
         if (fieldQueue.length === 0) {
+          savePrefs();
           await stopScanner();
           await Promise.resolve(onComplete({ ...collectedData, rawText: allRawTexts.join('\n\n') }));
           return;
