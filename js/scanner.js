@@ -27,7 +27,7 @@ const OCR_MODEL_PATTERNS = [
 ];
 
 const OCR_MAC_PATTERNS = [
-  /(?:MAC|MAG|MC)\s*[:\-\.=\s\/\\]*\s*([0-9A-FOILSG!|]{2}(?:[-:\s]?[0-9A-FOILSG!|]{2}){5})/i,
+  /(?:MAC|MAG|MC)\s*[:\-\.=\s\/\\]*\s*([0-9A-FOILSG!|]{2}(?:[-:\s]?[0-9A-FOILSG!|]{2}){4,5})/i,
 ];
 
 const OCR_BRAND_PATTERNS = [
@@ -543,12 +543,20 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
         const stillSearching = [];
         for (const currentField of fieldQueue) {
           const extractor = OCR_FIELD_EXTRACTORS[currentField];
-          const value = extractor ? extractor(text) : null;
-          if (value) {
-            collectedData[currentField] = value;
-            onFieldScan?.(currentField, value, false);
-            foundAnyInSnapshot = true;
-          } else {
+          let foundBetter = false;
+          if (extractor) {
+            const value = extractor(text);
+            if (value) {
+              const currentVal = collectedData[currentField];
+              if (!currentVal || value.length >= currentVal.length) {
+                collectedData[currentField] = value;
+                onFieldScan?.(currentField, value, false);
+                foundAnyInSnapshot = true;
+                foundBetter = true;
+              }
+            }
+          }
+          if (!foundBetter) {
             stillSearching.push(currentField);
           }
         }
@@ -713,16 +721,20 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
 
       for (const currentField of fieldQueue) {
         const extractor = OCR_FIELD_EXTRACTORS[currentField];
+        let foundBetter = false;
         if (extractor) {
           const value = extractor(text);
           if (value) {
-            collectedData[currentField] = value;
-            onFieldScan?.(currentField, value, false);
-            foundAny = true;
-          } else {
-            stillSearching.push(currentField);
+            const currentVal = collectedData[currentField];
+            if (!currentVal || value.length >= currentVal.length) {
+              collectedData[currentField] = value;
+              onFieldScan?.(currentField, value, false);
+              foundAny = true;
+              foundBetter = true;
+            }
           }
-        } else {
+        }
+        if (!foundBetter) {
           stillSearching.push(currentField);
         }
       }
@@ -734,7 +746,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
 
         if (fieldQueue.length === 0) {
           await stopScanner();
-          await Promise.resolve(onComplete(collectedData));
+          await Promise.resolve(onComplete({ ...collectedData, rawText: allRawTexts.join('\n\n') }));
           return;
         }
       }
