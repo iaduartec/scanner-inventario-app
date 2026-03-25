@@ -425,38 +425,19 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
                 background: var(--accent); 
                 color: #fff; 
                 border: 0; 
-                padding: 8px 12px; 
-                border-radius: 10px; 
-                font-weight: 800; 
-                font-size: 0.75rem;
+                padding: 14px 24px; 
+                border-radius: 14px; 
+                font-weight: 900; 
+                font-size: 1.1rem;
                 white-space: nowrap;
+                box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
               ">${zoomLevel}x</button>
             ` : ''}
-            <button type="button" id="btnCaptureSnapshot" style="
-              background: var(--ok); 
-              color: #000; 
-              border: 0; 
-              padding: 8px 12px; 
-              border-radius: 10px; 
-              font-weight: 800; 
-              font-size: 0.75rem;
-              white-space: nowrap;
-              box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-            ">TOMAR FOTO</button>
           </div>
         </div>
       </div>
     `;
     
-    const btnSnapshot = overlay.querySelector('#btnCaptureSnapshot');
-    if (btnSnapshot) {
-      btnSnapshot.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        captureSnapshot();
-      };
-    }
-
     const btnZoom = overlay.querySelector('#btnToggleZoom');
     if (btnZoom) {
       btnZoom.onclick = (e) => {
