@@ -258,6 +258,32 @@ h4 { font-size: 1rem; }
   color: #d6f4ff;
 }
 
+.scan-controls-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin: 1.2rem 0 0.8rem;
+  padding: 1.1rem;
+  background: rgba(2, 6, 23, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 20px;
+}
+.status-selector-compact {
+  margin-top: 0.35rem;
+  padding: 0.75rem 0.85rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+  background: rgba(15, 23, 42, 0.9);
+  border-color: rgba(56, 189, 248, 0.3);
+  color: var(--accent);
+  text-align: center;
+}
+.unified-scan-btn {
+  font-size: 1.15rem;
+  letter-spacing: 0.05em;
+  padding: 1.1rem;
+  box-shadow: 0 8px 25px rgba(56, 189, 248, 0.3);
+}
 .quick-actions {
   display: grid;
   grid-template-columns: 1fr;

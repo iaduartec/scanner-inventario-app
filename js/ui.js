@@ -102,7 +102,7 @@ export function renderRecordDetail({ container: contenedor, record: registro, on
       <button type="button" class="ghost-button" data-detail-edit="${registro.id}">Editar este registro</button>
     </div>
 
-    <dl class="detail-grid" aria-label="Resumen del equipo seleccionado">
+    <div class="detail-grid" aria-label="Resumen del equipo seleccionado">
       <div>
         <dt>Estado actual</dt>
         <dd><span class="status-pill status-${registro.estado}">${registro.estado}</span></dd>
@@ -131,34 +131,6 @@ export function renderRecordDetail({ container: contenedor, record: registro, on
         <dt>Último movimiento</dt>
         <dd>${formatDateTime(registro.fechaUltimoMovimiento)}</dd>
       </div>
-    </dl>
-
-    <div class="detail-history">
-      <div class="section-header compact-header">
-        <div>
-          <p class="eyebrow">Historial</p>
-          <h4>${history.length} movimiento(s)</h4>
-        </div>
-      </div>
-      <ol class="history-list">
-        ${history
-          .map(
-            (movement) => `
-              <li class="history-item">
-                <div class="history-item-header">
-                  <strong>${movement.tipo === 'alta' ? 'Alta inicial' : 'Actualización manual'}</strong>
-                  <span>${formatDateTime(movement.fecha)}</span>
-                </div>
-                <p>
-                  <span class="status-pill status-${movement.estado}">${movement.estado}</span>
-                  <span class="history-meta">${movement.mac ? `MAC ${movement.mac} · ` : ''}${movement.marca ? `${movement.marca} · ` : ''}${movement.fuenteCaptura}${movement.actuacion ? ` · Act: ${movement.actuacion}` : ''} · ${movement.tecnico || 'Sin técnico'} · ${movement.ubicacion || 'Sin ubicación'}</span>
-                </p>
-                <p class="subtle">${movement.observaciones || 'Sin observaciones registradas.'}</p>
-              </li>
-            `,
-          )
-          .join('')}
-      </ol>
     </div>
   `;
 
@@ -181,10 +153,14 @@ export function toggleDuplicateAlert(elemento, visible) {
 }
 
 export function updateLastCapture({ serialElement: serialElemento, metaElement: metaElemento, record: registro }) {
-  serialElemento.textContent = registro?.serial ?? 'Sin lecturas todavía';
-  metaElemento.textContent = registro
-    ? `${registro.estado}${registro.mac ? ` · MAC ${registro.mac}` : ''}${registro.marca ? ` · ${registro.marca}` : ''} · ${registro.modelo || 'Sin modelo'} · ${formatDateTime(registro.fechaUltimoMovimiento)}`
-    : 'Esperando el primer escaneo o alta manual.';
+  if (serialElemento) {
+    serialElemento.textContent = registro?.serial ?? 'Sin lecturas todavía';
+  }
+  if (metaElemento) {
+    metaElemento.textContent = registro
+      ? `${registro.estado}${registro.mac ? ` · MAC ${registro.mac}` : ''}${registro.marca ? ` · ${registro.marca}` : ''} · ${registro.modelo || 'Sin modelo'} · ${formatDateTime(registro.fechaUltimoMovimiento)}`
+      : 'Esperando el primer escaneo o alta manual.';
+  }
 }
 
 export function updateCounters({

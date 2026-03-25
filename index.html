@@ -122,9 +122,17 @@
             </div>
           </div>
 
-          <div class="quick-actions" role="group" aria-label="Acciones principales de escaneo">
-            <button id="scanEquipoInstaladoButton" class="primary-action" type="button">Escanear equipo instalado</button>
-            <button id="scanEquipoDesinstaladoButton" class="secondary-action" type="button">Escanear equipo desinstalado</button>
+          <div class="scan-controls-group">
+            <div class="eyebrow">Estado por defecto para el escaneo</div>
+            <select id="quickStatusSelect" class="status-selector-compact">
+              <option value="INSTALADO" selected>INSTALADO</option>
+              <option value="DESINSTALADO">DESINSTALADO</option>
+              <option value="RETIRADO">RETIRADO</option>
+              <option value="AVERIADO">AVERIADO</option>
+            </select>
+            <button id="startUnifiedScanButton" class="primary-action unified-scan-btn" type="button">
+              INICIAR ESCANEO
+            </button>
           </div>
 
           <div style="margin-top: 1rem; display: flex; justify-content: center;">
@@ -136,13 +144,6 @@
 
           <div class="scan-layout">
             <div class="scanner-panel">
-              <div class="scanner-toolbar">
-                <div>
-                  <p class="scanner-status-label">Estado de captura</p>
-                  <strong id="scannerModeLabel">Cámara inactiva · S/N</strong>
-                </div>
-                <button id="stopScannerButton" class="ghost-button" type="button">Detener cámara</button>
-              </div>
               <div id="reader" class="reader" aria-live="polite"></div>
               <p class="hint">
                 En iPhone usa Safari. En Android, Chrome o Samsung Internet. Acepta los permisos de cámara, apunta al QR, código de barras o a la línea S/N y MAC con buena luz y, si no aparece imagen, recarga la PWA y vuelve a permitir la cámara.
@@ -150,12 +151,6 @@
             </div>
 
             <aside class="scan-sidebar">
-              <div class="card inset-card status-card">
-                <p class="eyebrow">Última captura</p>
-                <strong id="lastSerial">Sin lecturas todavía</strong>
-                <p id="lastCaptureMeta" class="subtle compact">Esperando el primer escaneo o alta manual.</p>
-              </div>
-
               <div id="duplicateAlert" class="alert hidden" role="alert" aria-live="assertive">
                 <strong>Serial duplicado detectado</strong>
                 <p>Ya existe un registro con este serial. Revísalo antes de continuar.</p>
@@ -166,7 +161,7 @@
           </div>
         </section>
 
-        <section class="card form-card" aria-labelledby="manual-form-title">
+        <section id="formSection" class="card form-card hidden" aria-labelledby="manual-form-title">
           <div class="section-header">
             <div>
               <p class="eyebrow">Captura manual</p>
@@ -227,7 +222,6 @@
             <div class="form-actions">
               <button id="saveButton" class="primary-action" type="submit">Guardar registro</button>
               <button id="cancelEditButton" class="ghost-button hidden" type="button">Cancelar edición</button>
-              <button id="loadDemoButton" class="ghost-button" type="button">Cargar demo</button>
             </div>
           </form>
         </section>
