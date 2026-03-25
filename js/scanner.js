@@ -473,16 +473,39 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
     lastFrameTime: Date.now(),
     currentZoom: 1,
     capabilities: null,
+    startTime: Date.now(),
+    autoZoomStage: 0,
+    fullQueueLength: fieldQueue.length,
   };
 
   try {
     const [track] = stream.getVideoTracks();
     if (track && typeof track.getCapabilities === 'function') {
       scannerState.capabilities = track.getCapabilities();
+      
+      // Explicitly request continuous focus if supported
+      if (scannerState.capabilities.focusMode?.includes('continuous')) {
+        await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+      }
     }
   } catch (err) {
     console.warn('Could not read camera capabilities:', err);
   }
+
+  const applyZoom = async (level) => {
+    if (!scannerState.capabilities?.zoom || scannerState.stopped) return;
+    const { min, max } = scannerState.capabilities.zoom;
+    const targetZoom = Math.max(min, Math.min(level, max));
+
+    try {
+      const [track] = scannerState.stream.getVideoTracks();
+      await track.applyConstraints({ advanced: [{ zoom: targetZoom }] });
+      scannerState.currentZoom = targetZoom;
+      updateFieldDisplay();
+    } catch (err) {
+      console.error('Error applying zoom:', err);
+    }
+  };
 
   const toggleZoom = async () => {
     if (!scannerState.capabilities?.zoom || scannerState.stopped) return;
@@ -495,15 +518,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
     let currentIndex = steps.findIndex(s => Math.abs(s - scannerState.currentZoom) < 0.1);
     let nextIndex = (currentIndex + 1) % steps.length;
     const targetZoom = steps[nextIndex];
-    
-    try {
-      const [track] = scannerState.stream.getVideoTracks();
-      await track.applyConstraints({ advanced: [{ zoom: targetZoom }] });
-      scannerState.currentZoom = targetZoom;
-      updateFieldDisplay();
-    } catch (err) {
-      console.error('Error applying zoom:', err);
-    }
+    applyZoom(targetZoom);
   };
 
   const stillnessCanvas = ensureCanvas(32, 24);
@@ -652,6 +667,19 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
       captureSnapshot();
       scannerState.timerId = window.setTimeout(scanFrame, 150);
       return;
+    }
+
+    // Auto-zoom logic: if nothing found for some time, zoom in to help
+    const elapsed = Date.now() - scannerState.startTime;
+    if (scannerState.capabilities?.zoom && !scannerState.busy && fieldQueue.length === scannerState.fullQueueLength) {
+      const { max } = scannerState.capabilities.zoom;
+      if (elapsed > 4000 && scannerState.autoZoomStage === 0 && max >= 2) {
+        scannerState.autoZoomStage = 1;
+        applyZoom(2);
+      } else if (elapsed > 8000 && scannerState.autoZoomStage === 1 && max >= 3) {
+        scannerState.autoZoomStage = 2;
+        applyZoom(3);
+      }
     }
 
     if (!scannerState.video.videoWidth || !scannerState.video.videoHeight) {
