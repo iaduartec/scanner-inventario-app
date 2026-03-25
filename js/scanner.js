@@ -292,15 +292,20 @@ function ensureCanvas(width, height) {
 async function getRearCameraStream() {
   // Safari-safe: use simple constraints first
   if (isSafari) {
+    const safariConstraints = {
+      audio: false,
+      video: {
+        facingMode: 'environment',
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      }
+    };
     try {
-      return await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: { facingMode: 'environment' },
-      });
+      return await navigator.mediaDevices.getUserMedia(safariConstraints);
     } catch {
       return navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: true,
+        video: { facingMode: 'environment' },
       });
     }
   }
@@ -383,10 +388,16 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
   const collectedData = {};
   let fieldQueue = [...fields];
 
-  function updateFieldDisplay() {
+  function updateFieldDisplay(debugText = '') {
     if (fieldQueue.length === 0) return;
     const remainingLabels = fieldQueue.map(f => OCR_FIELD_LABELS[f] ?? f).join(' · ');
-    overlay.textContent = "Apunta a la pegatina del equipo para escanear todo automáticamente.";
+    const displayAngle = [0, 90, 180, 270][scannerState?.rotationIndex ?? 0];
+    overlay.innerHTML = `
+      <div style="margin-bottom: 4px;">Apunta a la pegatina (${displayAngle}º).</div>
+      <div style="font-size: 0.75rem; opacity: 0.8; color: var(--accent);">
+        ${debugText ? `Lectura: ${debugText.substring(0, 45)}...` : 'Buscando datos...'}
+      </div>
+    `;
     fieldIndicator.innerHTML = `<span class="field-badge active">Buscando</span> <span class="field-remaining">${remainingLabels}</span>`;
   }
 
@@ -457,6 +468,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
       const isSwapped = angle === 90 || angle === 270;
 
       scannerState.context.save();
+      scannerState.context.filter = 'contrast(1.2) brightness(1.1)';
       scannerState.context.fillStyle = '#ffffff';
       scannerState.context.fillRect(0, 0, scannerState.canvas.width, scannerState.canvas.height);
       
@@ -483,6 +495,8 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
       const result = await scannerState.worker.recognize(scannerState.canvas);
       const text = result?.data?.text ?? '';
 
+      updateFieldDisplay(text.trim().replace(/\s+/g, ' '));
+      
       // Increment rotation for next frame
       scannerState.rotationIndex = (scannerState.rotationIndex + 1) % 4;
 
