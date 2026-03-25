@@ -442,7 +442,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
     rotationIndex: 0,
     lastStillnessData: null,
     stillnessMs: 0,
-    stillnessThreshold: 15,
+    stillnessThreshold: 25,
     lastFrameTime: Date.now(),
   };
 
@@ -574,20 +574,20 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
       return;
     }
     if (scannerState.busy) {
-      scannerState.timerId = window.setTimeout(scanFrame, 200);
+      scannerState.timerId = window.setTimeout(scanFrame, 150);
       return;
     }
 
     // Autocapture if still
     const isStill = checkStillness();
-    if (isStill && scannerState.stillnessMs > 1000) {
+    if (isStill && scannerState.stillnessMs > 500) {
       captureSnapshot();
-      scannerState.timerId = window.setTimeout(scanFrame, 200);
+      scannerState.timerId = window.setTimeout(scanFrame, 150);
       return;
     }
 
     if (!scannerState.video.videoWidth || !scannerState.video.videoHeight) {
-      scannerState.timerId = window.setTimeout(scanFrame, 250);
+      scannerState.timerId = window.setTimeout(scanFrame, 150);
       return;
     }
 
