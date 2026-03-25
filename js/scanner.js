@@ -393,11 +393,36 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
     const remainingLabels = fieldQueue.map(f => OCR_FIELD_LABELS[f] ?? f).join(' · ');
     const displayAngle = [0, 90, 180, 270][scannerState?.rotationIndex ?? 0];
     overlay.innerHTML = `
-      <div style="margin-bottom: 4px;">Apunta a la pegatina (${displayAngle}º).</div>
-      <div style="font-size: 0.75rem; opacity: 0.8; color: var(--accent);">
-        ${debugText ? `Lectura: ${debugText.substring(0, 45)}...` : 'Buscando datos...'}
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+        <div style="flex: 1;">
+          <div style="margin-bottom: 4px; font-weight: 700;">Apunta a la pegatina (${displayAngle}º)</div>
+          <div style="font-size: 0.75rem; opacity: 0.8; color: var(--accent); line-height: 1.2;">
+            ${debugText ? `Captando: ${debugText.substring(0, 40)}...` : 'Buscando datos automáticamente...'}
+          </div>
+        </div>
+        <button type="button" id="btnCaptureSnapshot" style="
+          background: var(--ok); 
+          color: #000; 
+          border: 0; 
+          padding: 8px 12px; 
+          border-radius: 10px; 
+          font-weight: 800; 
+          font-size: 0.75rem;
+          white-space: nowrap;
+          box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+        ">TOMAR FOTO</button>
       </div>
     `;
+    
+    const btn = overlay.querySelector('#btnCaptureSnapshot');
+    if (btn) {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        captureSnapshot();
+      };
+    }
+
     fieldIndicator.innerHTML = `<span class="field-badge active">Buscando</span> <span class="field-remaining">${remainingLabels}</span>`;
   }
 
@@ -413,6 +438,83 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
     busy: false,
     timerId: null,
     rotationIndex: 0,
+  };
+
+  const captureSnapshot = async () => {
+    if (scannerState.busy || scannerState.stopped) return;
+    scannerState.busy = true;
+    const btn = overlay.querySelector('#btnCaptureSnapshot');
+    const originalBtnText = btn?.textContent || "TOMAR FOTO";
+    if (btn) {
+      btn.textContent = "PROCESANDO...";
+      btn.disabled = true;
+      btn.style.opacity = "0.7";
+    }
+
+    try {
+      const sourceWidth = scannerState.video.videoWidth;
+      const sourceHeight = scannerState.video.videoHeight;
+      const ratio = Math.min(scannerState.canvas.width / sourceWidth, scannerState.canvas.height / sourceHeight, 1);
+      const drawWidth = Math.max(1, Math.floor(sourceWidth * ratio));
+      const drawHeight = Math.max(1, Math.floor(sourceHeight * ratio));
+
+      // High-intensity 4-way scan on the current frozen frame
+      let foundAnyInSnapshot = false;
+
+      for (const angle of [0, 90, 180, 270]) {
+        const isSwapped = angle === 90 || angle === 270;
+        scannerState.context.save();
+        scannerState.context.filter = 'contrast(1.3) brightness(1.1)';
+        scannerState.context.fillStyle = '#ffffff';
+        scannerState.context.fillRect(0, 0, scannerState.canvas.width, scannerState.canvas.height);
+        scannerState.context.translate(scannerState.canvas.width / 2, scannerState.canvas.height / 2);
+        scannerState.context.rotate((angle * Math.PI) / 180);
+        const targetWidth = isSwapped ? drawHeight : drawWidth;
+        const targetHeight = isSwapped ? drawWidth : drawHeight;
+        scannerState.context.drawImage(scannerState.video, 0, 0, sourceWidth, sourceHeight, -targetWidth/2, -targetHeight/2, targetWidth, targetHeight);
+        scannerState.context.restore();
+
+        const result = await scannerState.worker.recognize(scannerState.canvas);
+        const text = result?.data?.text ?? '';
+
+        const stillSearching = [];
+        for (const currentField of fieldQueue) {
+          const extractor = OCR_FIELD_EXTRACTORS[currentField];
+          const value = extractor ? extractor(text) : null;
+          if (value) {
+            collectedData[currentField] = value;
+            onFieldScan?.(currentField, value, false);
+            foundAnyInSnapshot = true;
+          } else {
+            stillSearching.push(currentField);
+          }
+        }
+        fieldQueue = stillSearching;
+        if (fieldQueue.length === 0) break;
+      }
+
+      if (foundAnyInSnapshot) {
+        lastFoundTime = Date.now();
+        updateFieldDisplay();
+        if (fieldQueue.length === 0) {
+          await stopScanner();
+          await Promise.resolve(onComplete(collectedData));
+          return;
+        }
+      } else {
+        setFeedback(overlay, "No se detectó nada en la foto. Intenta acercar la cámara.", "error");
+        setTimeout(() => updateFieldDisplay(), 2500);
+      }
+    } catch (err) {
+      console.error("Snapshot error:", err);
+    } finally {
+      scannerState.busy = false;
+      if (btn) {
+        btn.textContent = originalBtnText;
+        btn.disabled = false;
+        btn.style.opacity = "1";
+      }
+    }
   };
 
   updateFieldDisplay();
