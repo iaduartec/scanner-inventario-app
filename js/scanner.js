@@ -394,34 +394,61 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
     if (fieldQueue.length === 0) return;
     const remainingLabels = fieldQueue.map(f => OCR_FIELD_LABELS[f] ?? f).join(' · ');
     const displayAngle = [0, 90, 180, 270][scannerState?.rotationIndex ?? 0];
+    const zoomLevel = scannerState?.currentZoom ?? 1;
+
     overlay.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-        <div style="flex: 1;">
-          <div style="margin-bottom: 4px; font-weight: 700;">Apunta a la pegatina (${displayAngle}º)</div>
-          <div style="font-size: 0.75rem; opacity: 0.8; color: var(--accent); line-height: 1.2;">
-            ${debugText ? `Captando: ${debugText.substring(0, 40)}...` : 'Buscando datos automáticamente...'}
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+          <div style="flex: 1;">
+            <div style="margin-bottom: 4px; font-weight: 700;">Apunta a la pegatina (${displayAngle}º)</div>
+            <div style="font-size: 0.75rem; opacity: 0.8; color: var(--accent); line-height: 1.2;">
+              ${debugText ? `Captando: ${debugText.substring(0, 40)}...` : 'Buscando datos automáticamente...'}
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            ${scannerState?.capabilities?.zoom ? `
+              <button type="button" id="btnToggleZoom" style="
+                background: var(--accent); 
+                color: #fff; 
+                border: 0; 
+                padding: 8px 12px; 
+                border-radius: 10px; 
+                font-weight: 800; 
+                font-size: 0.75rem;
+                white-space: nowrap;
+              ">${zoomLevel === 1 ? '1x' : '2x'}</button>
+            ` : ''}
+            <button type="button" id="btnCaptureSnapshot" style="
+              background: var(--ok); 
+              color: #000; 
+              border: 0; 
+              padding: 8px 12px; 
+              border-radius: 10px; 
+              font-weight: 800; 
+              font-size: 0.75rem;
+              white-space: nowrap;
+              box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+            ">TOMAR FOTO</button>
           </div>
         </div>
-        <button type="button" id="btnCaptureSnapshot" style="
-          background: var(--ok); 
-          color: #000; 
-          border: 0; 
-          padding: 8px 12px; 
-          border-radius: 10px; 
-          font-weight: 800; 
-          font-size: 0.75rem;
-          white-space: nowrap;
-          box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-        ">TOMAR FOTO</button>
       </div>
     `;
     
-    const btn = overlay.querySelector('#btnCaptureSnapshot');
-    if (btn) {
-      btn.onclick = (e) => {
+    const btnSnapshot = overlay.querySelector('#btnCaptureSnapshot');
+    if (btnSnapshot) {
+      btnSnapshot.onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();
         captureSnapshot();
+      };
+    }
+
+    const btnZoom = overlay.querySelector('#btnToggleZoom');
+    if (btnZoom) {
+      btnZoom.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleZoom();
       };
     }
 
@@ -444,6 +471,32 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
     stillnessMs: 0,
     stillnessThreshold: 25,
     lastFrameTime: Date.now(),
+    currentZoom: 1,
+    capabilities: null,
+  };
+
+  try {
+    const [track] = stream.getVideoTracks();
+    if (track && typeof track.getCapabilities === 'function') {
+      scannerState.capabilities = track.getCapabilities();
+    }
+  } catch (err) {
+    console.warn('Could not read camera capabilities:', err);
+  }
+
+  const toggleZoom = async () => {
+    if (!scannerState.capabilities?.zoom || scannerState.stopped) return;
+    const { min, max } = scannerState.capabilities.zoom;
+    const targetZoom = scannerState.currentZoom === 1 ? Math.min(2, max) : 1;
+    
+    try {
+      const [track] = scannerState.stream.getVideoTracks();
+      await track.applyConstraints({ advanced: [{ zoom: targetZoom }] });
+      scannerState.currentZoom = targetZoom;
+      updateFieldDisplay();
+    } catch (err) {
+      console.error('Error applying zoom:', err);
+    }
   };
 
   const stillnessCanvas = ensureCanvas(32, 24);
