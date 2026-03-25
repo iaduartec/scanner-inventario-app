@@ -121,5 +121,6 @@
   "editor.smoothScrolling": true,
   "workbench.list.smoothScrolling": true,
   "editor.inlayHints.enabled": "offUnlessPressed",
-  "editor.guides.bracketPairs": "active"
+  "editor.guides.bracketPairs": "active",
+  "autoAcceptFree.antigravityExecutablePath": "c:\\Users\\kiri_\\AppData\\Local\\Programs\\Antigravity\\Antigravity.exe"
 }
