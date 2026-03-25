@@ -416,7 +416,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
                 font-weight: 800; 
                 font-size: 0.75rem;
                 white-space: nowrap;
-              ">${zoomLevel === 1 ? '1x' : '2x'}</button>
+              ">${zoomLevel}x</button>
             ` : ''}
             <button type="button" id="btnCaptureSnapshot" style="
               background: var(--ok); 
@@ -487,7 +487,14 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
   const toggleZoom = async () => {
     if (!scannerState.capabilities?.zoom || scannerState.stopped) return;
     const { min, max } = scannerState.capabilities.zoom;
-    const targetZoom = scannerState.currentZoom === 1 ? Math.min(2, max) : 1;
+    
+    // Cycle through logical steps: 1x, 2x, 3x, 5x
+    const steps = [1, 2, 3, 5].filter(s => s <= max && s >= min);
+    if (steps.length <= 1) return;
+
+    let currentIndex = steps.findIndex(s => Math.abs(s - scannerState.currentZoom) < 0.1);
+    let nextIndex = (currentIndex + 1) % steps.length;
+    const targetZoom = steps[nextIndex];
     
     try {
       const [track] = scannerState.stream.getVideoTracks();
