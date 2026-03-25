@@ -51,7 +51,6 @@ export function renderRecords({ records: registros, tableBody: cuerpoTabla, onEd
           </td>
           <td>
             <div class="table-actions">
-              <button type="button" class="ghost-button" data-detail="${registro.id}">Detalle</button>
               <button type="button" class="ghost-button" data-edit="${registro.id}">Editar</button>
               <button type="button" class="ghost-button danger-text" data-delete="${registro.id}">Eliminar</button>
             </div>
@@ -68,61 +67,10 @@ export function renderRecords({ records: registros, tableBody: cuerpoTabla, onEd
   cuerpoTabla.querySelectorAll('[data-delete]').forEach((button) => {
     button.addEventListener('click', () => alEliminar(button.dataset.delete));
   });
-
-  cuerpoTabla.querySelectorAll('[data-detail]').forEach((button) => {
-    button.addEventListener('click', () => alSeleccionar(button.dataset.detail));
-  });
 }
 
-export function renderRecordDetail({ container: contenedor, record: registro, onEdit: alEditar }) {
-  if (!registro) {
-    contenedor.innerHTML = `
-      <div class="detail-empty">
-        <p class="eyebrow">Detalle</p>
-        <h3>Selecciona un equipo</h3>
-        <p class="subtle">Usa el botón “Detalle” de cualquier fila para revisar el historial del serial.</p>
-      </div>
-    `;
-    return;
-  }
-
-  const history = [...(registro.historial ?? [])].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-
-  contenedor.innerHTML = `
-    <div class="detail-header">
-      <div>
-        <p class="eyebrow">Detalle de equipo</p>
-        <h3>${registro.serial}</h3>
-        <p class="subtle">${registro.mac ? `MAC ${registro.mac} · ` : ''}${registro.marca || 'Sin marca'} · ${registro.modelo || 'Sin modelo'}</p>
-      </div>
-      <button type="button" class="ghost-button" data-detail-edit="${registro.id}">Editar este registro</button>
-    </div>
-
-    <div class="detail-grid" aria-label="Resumen del equipo seleccionado">
-      <div>
-        <dt>Estado actual</dt>
-        <dd><span class="status-pill status-${registro.estado}">${registro.estado}</span></dd>
-      </div>
-      <div>
-        <dt>MAC</dt>
-        <dd>${registro.mac || '—'}</dd>
-      </div>
-      <div>
-        <dt>Marca</dt>
-        <dd>${registro.marca || '—'}</dd>
-      </div>
-      <div>
-        <dt>Alta</dt>
-        <dd>${formatDateTime(registro.fechaAlta)}</dd>
-      </div>
-      <div>
-        <dt>Último movimiento</dt>
-        <dd>${formatDateTime(registro.fechaUltimoMovimiento)}</dd>
-      </div>
-    </div>
-  `;
-
-  contenedor.querySelector('[data-detail-edit]')?.addEventListener('click', () => alEditar(registro.id));
+export function renderRecordDetail() {
+  // Eliminado por solicitud de simplificación extrema
 }
 
 export function setFeedback(elemento, mensaje, variant = 'info') {
