@@ -18,12 +18,12 @@ const BARCODE_FORMATS_IOS = [
 ];
 
 const OCR_SERIAL_PATTERNS = [
-  /S\s*\/\s*N\s*[:\-]?\s*([A-Z0-9][A-Z0-9-]{4,})/i,
+  /(?:S\s*\/\s*N|SERIAL(?: NUMBER| NO\.?)?)\s*[:\-]?\s*([A-Z0-9][A-Z0-9-]{4,})/i,
   /\bSN\s*[:\-]?\s*([A-Z0-9][A-Z0-9-]{4,})/i,
 ];
 
 const OCR_MODEL_PATTERNS = [
-  /(?:MODEL|MODELO)\s*[:\-]?\s*(.+)/i,
+  /(?:MODEL NAME OF MANUFACTURE|MODEL NAME|MODELO|MODEL)\s*[:\-]?\s*(.+)/i,
 ];
 
 const OCR_MAC_PATTERNS = [
@@ -197,7 +197,9 @@ function extractModelFromOcr(text) {
 
 const KNOWN_BRANDS = [
   'ZTE', 'HUAWEI', 'NOKIA', 'ALCATEL', 'CISCO', 'UBIQUITI', 'UBNT',
-  'MIKROTIK', 'TP-LINK', 'D-LINK', 'ARUBA', 'JUNIPER', 'EXTREME', 'HP', 'DELL'
+  'MIKROTIK', 'TP-LINK', 'D-LINK', 'ARUBA', 'JUNIPER', 'EXTREME', 'HP', 'DELL',
+  'ARCADYAN', 'SERCOMM', 'SAGEMCOM', 'ASKEY', 'TECHNICOLOR', 'ZYXEL', 'OBSERVA', 
+  'MITRASTAR', 'AMPER', 'NETGEAR'
 ];
 
 function extractBrandFromOcr(text) {
