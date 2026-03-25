@@ -488,6 +488,15 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
       if (scannerState.capabilities.focusMode?.includes('continuous')) {
         await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
       }
+
+      // Start at 2x by default as requested by user
+      if (scannerState.capabilities.zoom) {
+        const { max } = scannerState.capabilities.zoom;
+        const initialZoom = Math.min(2, max);
+        await track.applyConstraints({ advanced: [{ zoom: initialZoom }] });
+        scannerState.currentZoom = initialZoom;
+        scannerState.autoZoomStage = 1; // Already at 2x
+      }
     }
   } catch (err) {
     console.warn('Could not read camera capabilities:', err);
@@ -674,16 +683,16 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
       return;
     }
 
-    // Auto-zoom logic: if nothing found for 3+s, zoom in
+    // Auto-zoom logic: if nothing found for 3+s, zoom in more
     const elapsed = Date.now() - scannerState.startTime;
     if (scannerState.capabilities?.zoom && !scannerState.busy && fieldQueue.length === scannerState.fullQueueLength) {
       const { max } = scannerState.capabilities.zoom;
-      if (elapsed > 3000 && scannerState.autoZoomStage === 0 && max >= 2) {
-        scannerState.autoZoomStage = 1;
-        applyZoom(2);
-      } else if (elapsed > 6000 && scannerState.autoZoomStage === 1 && max >= 3) {
+      if (elapsed > 3000 && scannerState.autoZoomStage === 1 && max >= 3) {
         scannerState.autoZoomStage = 2;
         applyZoom(3);
+      } else if (elapsed > 6000 && scannerState.autoZoomStage === 2 && max >= 5) {
+        scannerState.autoZoomStage = 3;
+        applyZoom(5);
       }
     }
 
