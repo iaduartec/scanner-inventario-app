@@ -147,8 +147,14 @@ function findDuplicate(serial, excludedId = null) {
 
 function getFilteredRecords() {
   const search = state.busqueda.trim().toLowerCase();
+  const standardStatuses = ['INSTALADO', 'DESINSTALADO', 'RETIRADO', 'AVERIADO'];
+  
   return [...state.registros]
-    .filter((record) => (state.filtro === 'TODOS' ? true : record.estado === state.filtro))
+    .filter((record) => {
+      if (state.filtro === 'TODOS') return true;
+      if (state.filtro === 'OTRO') return !standardStatuses.includes(record.estado);
+      return record.estado === state.filtro;
+    })
     .filter((record) => {
       if (!search) return true;
       return [record.serial, record.mac, record.modelo, record.marca, record.actuacion, record.cliente, record.tecnico, record.ubicacion]
