@@ -18,8 +18,8 @@ const BARCODE_FORMATS_IOS = [
 ];
 
 const OCR_SERIAL_PATTERNS = [
-  /(?:S\s*\/\s*N|SERIAL(?: NUMBER| NO\.?)?)\s*[:\-]?\s*([A-Z0-9][A-Z0-9\s-]{4,})/i,
-  /\bSN\s*[:\-]?\s*([A-Z0-9][A-Z0-9\s-]{4,})/i,
+  /(?:S\s*[\/\\]\s*N|SERIAL(?: NUMBER| NO\.?)?|REF|S\.?N\.?)\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s-]{4,})/i,
+  /\bSN\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s-]{4,})/i,
 ];
 
 const OCR_MODEL_PATTERNS = [
@@ -27,7 +27,7 @@ const OCR_MODEL_PATTERNS = [
 ];
 
 const OCR_MAC_PATTERNS = [
-  /MAC\s*[:\-]?\s*([0-9A-FOIL]{2}(?:[-:\s]?[0-9A-FOIL]{2}){5})/i,
+  /(?:MAC|MAG|MC)\s*[:\-\.=\s\/\\]*\s*([0-9A-FOIL]{2}(?:[-:\s]?[0-9A-FOIL]{2}){5})/i,
 ];
 
 const OCR_BRAND_PATTERNS = [
