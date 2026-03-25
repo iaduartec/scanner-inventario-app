@@ -27,7 +27,7 @@ const OCR_MODEL_PATTERNS = [
 ];
 
 const OCR_MAC_PATTERNS = [
-  /(?:MAC|MAG|MC)\s*[:\-\.=\s\/\\]*\s*([0-9A-FOILSG!|]{2}(?:[-:\s]?[0-9A-FOILSG!|]{2}){4,5})/i,
+  /(?:MAC|MAG|MC)\s*[:\-\.=\s\/\\]*\s*([0-9A-FOILSG!|]{2}(?:[-:\s][0-9A-FOILSG!|]{2}){5})/i,
 ];
 
 const OCR_BRAND_PATTERNS = [
@@ -597,6 +597,23 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
     }, 1500);
   };
 
+  const getMatchScore = (field, value) => {
+    if (!value) return 0;
+    let score = value.length;
+    // Boost score for known good prefixes
+    if (field === 'sn') {
+      const upper = value.toUpperCase();
+      if (upper.startsWith('EHSKE') || upper.startsWith('ZTE') || upper.startsWith('ZNC')) {
+        score += 100;
+      }
+    } else if (field === 'mac') {
+      // Prefer MACs with 6 full pairs
+      const clean = value.replace(/[^0-9A-F]/gi, '');
+      if (clean.length === 12) score += 50;
+    }
+    return score;
+  };
+
   const stillnessCanvas = ensureCanvas(32, 24);
   const stillnessCtx = stillnessCanvas.getContext('2d', { willReadFrequently: true });
 
@@ -654,15 +671,17 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
             const value = extractor(text);
             if (value) {
               const currentVal = collectedData[currentField];
-              // Favor longer matches. If same length, keep the first one found (avoid 8 -> B flickering)
-              if (!currentVal || value.length > currentVal.length) {
+              const newScore = getMatchScore(currentField, value);
+              const oldScore = getMatchScore(currentField, currentVal);
+
+              // Favor higher score (length + confidence boosts)
+              if (!currentVal || newScore > oldScore) {
                 collectedData[currentField] = value;
                 onFieldScan?.(currentField, value, false);
                 showFlashMessage(`${OCR_FIELD_LABELS[currentField] || currentField} OK`);
                 foundAnyInSnapshot = true;
                 foundBetter = true;
-              } else if (value.length === currentVal.length) {
-                // Same length, we still count it as found BETTER than nothing, so loop continues efficiently
+              } else if (newScore === oldScore) {
                 foundBetter = true; 
               }
             }
@@ -850,14 +869,17 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
           const value = extractor(text);
           if (value) {
             const currentVal = collectedData[currentField];
-            // Favor first found match if length is the same (avoid 8 -> B flickering)
-            if (!currentVal || value.length > currentVal.length) {
+            const newScore = getMatchScore(currentField, value);
+            const oldScore = getMatchScore(currentField, currentVal);
+
+            // Favor higher score (confidence-based)
+            if (!currentVal || newScore > oldScore) {
               collectedData[currentField] = value;
               onFieldScan?.(currentField, value, false);
               showFlashMessage(`${OCR_FIELD_LABELS[currentField] || currentField} OK`);
               foundAny = true;
               foundBetter = true;
-            } else if (value.length === currentVal.length) {
+            } else if (newScore === oldScore) {
               foundBetter = true;
             }
           }

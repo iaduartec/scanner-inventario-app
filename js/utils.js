@@ -28,11 +28,7 @@ export function normalizeMac(value) {
     .replace(/[^0-9A-F]/g, '');
 
   if (compact.length < 12) {
-    return String(value ?? '')
-      .trim()
-      .toUpperCase()
-      .replace(/[:\s]+/g, '-')
-      .replace(/-+/g, '-');
+    return '';
   }
 
   return compact
