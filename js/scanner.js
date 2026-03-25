@@ -70,7 +70,7 @@ function getQrBox(viewfinderWidth, viewfinderHeight, scanMode) {
   }
 
   const width = Math.max(280, Math.min(Math.floor(viewfinderWidth * 0.92), 560));
-  const height = Math.max(140, Math.min(Math.floor(viewfinderHeight * 0.3), 190));
+  const height = Math.max(100, Math.min(Math.floor(viewfinderHeight * 0.4), 160));
   return { width, height };
 }
 
@@ -761,15 +761,9 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
       return;
     }
 
-    // Auto-zoom logic: if nothing found for 3+s, zoom in
+    // Auto-zoom logic removed: Only manual 1x/2x as requested
     const elapsed = Date.now() - scannerState.startTime;
-    if (scannerState.capabilities?.zoom && !scannerState.busy && fieldQueue.length === scannerState.fullQueueLength) {
-      const { max } = scannerState.capabilities.zoom;
-      if (elapsed > 3000 && scannerState.autoZoomStage === 1 && max >= 2) {
-        scannerState.autoZoomStage = 2;
-        applyZoom(2);
-      }
-    }
+    // (Logic deleted)
 
     if (!scannerState.video.videoWidth || !scannerState.video.videoHeight) {
       scannerState.timerId = window.setTimeout(scanFrame, 150);
