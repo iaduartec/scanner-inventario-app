@@ -195,9 +195,22 @@ function extractModelFromOcr(text) {
   return raw ? normalizeText(raw.replace(/\s+/g, ' ')) : '';
 }
 
+const KNOWN_BRANDS = [
+  'ZTE', 'HUAWEI', 'NOKIA', 'ALCATEL', 'CISCO', 'UBIQUITI', 'UBNT',
+  'MIKROTIK', 'TP-LINK', 'D-LINK', 'ARUBA', 'JUNIPER', 'EXTREME', 'HP', 'DELL'
+];
+
 function extractBrandFromOcr(text) {
   const raw = extractFromOcr(text, OCR_BRAND_PATTERNS);
-  return raw ? normalizeText(raw.replace(/\s+/g, ' ')) : '';
+  if (raw) return normalizeText(raw.replace(/\s+/g, ' '));
+
+  const upperText = text.toUpperCase();
+  for (const brand of KNOWN_BRANDS) {
+    if (upperText.includes(brand)) {
+      return brand;
+    }
+  }
+  return '';
 }
 
 const OCR_FIELD_EXTRACTORS = {
