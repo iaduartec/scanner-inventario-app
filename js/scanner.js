@@ -363,21 +363,13 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
   const context = canvas.getContext('2d', { willReadFrequently: true });
 
   const collectedData = {};
-  let fieldIndex = 0;
-  const fieldQueue = [...fields];
+  let fieldQueue = [...fields];
 
   function updateFieldDisplay() {
-    if (fieldIndex >= fieldQueue.length) return;
-    const currentField = fieldQueue[fieldIndex];
-    const label = OCR_FIELD_LABELS[currentField] ?? currentField;
-    const progress = `${fieldIndex + 1}/${fieldQueue.length}`;
-    overlay.textContent = `Apunta a la etiqueta "${label}" del equipo y mantenla centrada.`;
-    fieldIndicator.innerHTML = `<span class="field-badge active">${label}</span> <span class="field-progress">${progress}</span>`;
-    // Show remaining fields
-    const remaining = fieldQueue.slice(fieldIndex + 1).map(f => OCR_FIELD_LABELS[f] ?? f);
-    if (remaining.length) {
-      fieldIndicator.innerHTML += ` <span class="field-remaining">→ ${remaining.join(' → ')}</span>`;
-    }
+    if (fieldQueue.length === 0) return;
+    const remainingLabels = fieldQueue.map(f => OCR_FIELD_LABELS[f] ?? f).join(' · ');
+    overlay.textContent = "Apunta a la pegatina del equipo para escanear todo automáticamente.";
+    fieldIndicator.innerHTML = `<span class="field-badge active">Buscando</span> <span class="field-remaining">${remainingLabels}</span>`;
   }
 
   const scannerState = {
@@ -395,12 +387,12 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
 
   updateFieldDisplay();
 
-  const AUTO_SKIP_TIMEOUT = 15000; // 15 seconds per field
-  let fieldStartTime = Date.now();
+  const AUTO_TIMEOUT = 12000; // 12 seconds sum timeout without finding any new fields
+  let lastFoundTime = Date.now();
 
   const scanFrame = async () => {
     if (scannerState.stopped) return;
-    if (fieldIndex >= fieldQueue.length) {
+    if (fieldQueue.length === 0) {
       await stopScanner();
       await Promise.resolve(onComplete(collectedData));
       return;
@@ -415,20 +407,18 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
       return;
     }
 
-    // Auto-skip if timeout exceeded — leave field blank
-    if (Date.now() - fieldStartTime > AUTO_SKIP_TIMEOUT) {
-      const currentField = fieldQueue[fieldIndex];
-      collectedData[currentField] = '';
-      onFieldScan?.(currentField, '', true);
-      fieldIndex += 1;
-      fieldStartTime = Date.now();
-      updateFieldDisplay();
-      if (fieldIndex >= fieldQueue.length) {
-        await stopScanner();
-        await Promise.resolve(onComplete(collectedData));
-        return;
+    // Auto-skip if timeout exceeded - wrap up with what we found
+    if (Date.now() - lastFoundTime > AUTO_TIMEOUT) {
+      for (const field of fieldQueue) {
+        if (!collectedData[field]) {
+          collectedData[field] = '';
+          onFieldScan?.(field, '', true);
+        }
       }
-      scannerState.timerId = window.setTimeout(scanFrame, 300);
+      fieldQueue = [];
+      updateFieldDisplay();
+      await stopScanner();
+      await Promise.resolve(onComplete(collectedData));
       return;
     }
 
@@ -460,23 +450,34 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
       const result = await scannerState.worker.recognize(scannerState.canvas);
       const text = result?.data?.text ?? '';
 
-      const currentField = fieldQueue[fieldIndex];
-      const extractor = OCR_FIELD_EXTRACTORS[currentField];
+      let foundAny = false;
+      const stillSearching = [];
 
-      if (extractor) {
-        const value = extractor(text);
-        if (value) {
-          collectedData[currentField] = value;
-          onFieldScan?.(currentField, value, false);
-          fieldIndex += 1;
-          fieldStartTime = Date.now();
-          updateFieldDisplay();
-
-          if (fieldIndex >= fieldQueue.length) {
-            await stopScanner();
-            await Promise.resolve(onComplete(collectedData));
-            return;
+      for (const currentField of fieldQueue) {
+        const extractor = OCR_FIELD_EXTRACTORS[currentField];
+        if (extractor) {
+          const value = extractor(text);
+          if (value) {
+            collectedData[currentField] = value;
+            onFieldScan?.(currentField, value, false);
+            foundAny = true;
+          } else {
+            stillSearching.push(currentField);
           }
+        } else {
+          stillSearching.push(currentField);
+        }
+      }
+
+      if (foundAny) {
+        fieldQueue = stillSearching;
+        lastFoundTime = Date.now();
+        updateFieldDisplay();
+
+        if (fieldQueue.length === 0) {
+          await stopScanner();
+          await Promise.resolve(onComplete(collectedData));
+          return;
         }
       }
     } catch (error) {
