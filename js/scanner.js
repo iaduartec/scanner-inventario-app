@@ -253,6 +253,7 @@ async function startBarcodeScanner({ elementId, modes, onScan, onError }) {
 
   try {
     for (const cameraConfig of cameraConfigs) {
+      setFeedback(overlay, "Modo ráfaga: Escaneando automáticamente...", "info");
       try {
         await html5Qrcode.start(cameraConfig, getScannerConfig(modes), successCallback, onError);
         lastError = null;
@@ -439,7 +440,14 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
     busy: false,
     timerId: null,
     rotationIndex: 0,
+    lastStillnessData: null,
+    stillnessMs: 0,
+    stillnessThreshold: 15,
+    lastFrameTime: Date.now(),
   };
+
+  const stillnessCanvas = ensureCanvas(32, 24);
+  const stillnessCtx = stillnessCanvas.getContext('2d', { willReadFrequently: true });
 
   const captureSnapshot = async () => {
     if (scannerState.busy || scannerState.stopped) return;
@@ -511,6 +519,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
       console.error("Snapshot error:", err);
     } finally {
       scannerState.busy = false;
+      scannerState.stillnessMs = 0; // Reset after snapshot
       if (btn) {
         btn.textContent = originalBtnText;
         btn.disabled = false;
@@ -518,6 +527,39 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
       }
     }
   };
+
+  function checkStillness() {
+    stillnessCtx.drawImage(scannerState.video, 0, 0, stillnessCanvas.width, stillnessCanvas.height);
+    const currentData = stillnessCtx.getImageData(0, 0, stillnessCanvas.width, stillnessCanvas.height).data;
+    
+    if (!scannerState.lastStillnessData) {
+      scannerState.lastStillnessData = currentData;
+      return false;
+    }
+
+    let diff = 0;
+    for (let i = 0; i < currentData.length; i += 4) {
+      // Luminance comparison
+      const r1 = currentData[i], g1 = currentData[i+1], b1 = currentData[i+2];
+      const r2 = scannerState.lastStillnessData[i], g2 = scannerState.lastStillnessData[i+1], b2 = scannerState.lastStillnessData[i+2];
+      diff += Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
+    }
+    
+    const avgDiff = diff / (stillnessCanvas.width * stillnessCanvas.height * 3);
+    scannerState.lastStillnessData = currentData;
+    
+    const now = Date.now();
+    const delta = now - scannerState.lastFrameTime;
+    scannerState.lastFrameTime = now;
+
+    if (avgDiff < scannerState.stillnessThreshold) {
+      scannerState.stillnessMs += delta;
+      return true;
+    } else {
+      scannerState.stillnessMs = 0;
+      return false;
+    }
+  }
 
   updateFieldDisplay();
 
@@ -532,7 +574,15 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
       return;
     }
     if (scannerState.busy) {
-      scannerState.timerId = window.setTimeout(scanFrame, 250);
+      scannerState.timerId = window.setTimeout(scanFrame, 200);
+      return;
+    }
+
+    // Autocapture if still
+    const isStill = checkStillness();
+    if (isStill && scannerState.stillnessMs > 1000) {
+      captureSnapshot();
+      scannerState.timerId = window.setTimeout(scanFrame, 200);
       return;
     }
 
