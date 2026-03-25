@@ -386,6 +386,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
   const context = canvas.getContext('2d', { willReadFrequently: true });
 
   const collectedData = {};
+  const allRawTexts = [];
   let fieldQueue = [...fields];
 
   function updateFieldDisplay(debugText = '') {
@@ -476,6 +477,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
 
         const result = await scannerState.worker.recognize(scannerState.canvas);
         const text = result?.data?.text ?? '';
+        allRawTexts.push(`[Snapshot ${angle}º] ${text}`);
 
         const stillSearching = [];
         for (const currentField of fieldQueue) {
@@ -498,7 +500,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
         updateFieldDisplay();
         if (fieldQueue.length === 0) {
           await stopScanner();
-          await Promise.resolve(onComplete(collectedData));
+          await Promise.resolve(onComplete({ ...collectedData, rawText: allRawTexts.join('\n\n') }));
           return;
         }
       } else {
@@ -526,7 +528,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
     if (scannerState.stopped) return;
     if (fieldQueue.length === 0) {
       await stopScanner();
-      await Promise.resolve(onComplete(collectedData));
+      await Promise.resolve(onComplete({ ...collectedData, rawText: allRawTexts.join('\n\n') }));
       return;
     }
     if (scannerState.busy) {
@@ -550,7 +552,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
       fieldQueue = [];
       updateFieldDisplay();
       await stopScanner();
-      await Promise.resolve(onComplete(collectedData));
+      await Promise.resolve(onComplete({ ...collectedData, rawText: allRawTexts.join('\n\n') }));
       return;
     }
 
@@ -596,6 +598,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
 
       const result = await scannerState.worker.recognize(scannerState.canvas);
       const text = result?.data?.text ?? '';
+      allRawTexts.push(`[Live ${angle}º] ${text}`);
 
       updateFieldDisplay(text.trim().replace(/\s+/g, ' '));
       

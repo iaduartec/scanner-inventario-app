@@ -33,6 +33,7 @@ const state = {
   scanModes: initialSettings.scanModes ?? { qr: false, barcode: false, text: true },
   ocrFields: initialSettings.ocrFields ?? ['marca', 'modelo', 'sn', 'mac'],
   promptDiferido: null,
+  sessionLog: [],
 };
 
 const referencias = {
@@ -82,6 +83,7 @@ const referencias = {
   botonExportar: document.querySelector('#exportButton'),
   botonVaciarTodo: document.querySelector('#clearAllButton'),
   botonCargarDemo: document.querySelector('#loadDemoButton'),
+  btnDescargarLog: document.querySelector('#downloadLogButton'),
   panelDetalle: document.querySelector('#detailPanel'),
 };
 
@@ -466,6 +468,15 @@ async function activateScanner(estadoObjetivo) {
             return;
           }
 
+          if (collectedData.rawText) {
+            state.sessionLog.push({
+              fecha: new Date().toISOString(),
+              tipo: 'ESCANEO_CAMARA_VIVO',
+              datos: { serial, mac, marca, modelo },
+              raw: collectedData.rawText
+            });
+          }
+
           await handleScan({ serial, mac, marca, modelo });
         },
         onError: () => {},
@@ -661,6 +672,15 @@ function bindEvents() {
               return;
             }
 
+            if (data.rawText) {
+              state.sessionLog.push({
+                fecha: new Date().toISOString(),
+                tipo: 'ESCANEO_ARCHIVO',
+                datos: { serial, mac, marca, modelo },
+                raw: data.rawText
+              });
+            }
+
             await handleScan({ serial, mac, marca, modelo });
           } else {
             await handleScan(data);
@@ -706,6 +726,23 @@ function bindEvents() {
   referencias.botonExportar.addEventListener('click', exportRecords);
   referencias.botonVaciarTodo.addEventListener('click', clearRecords);
   referencias.botonCargarDemo.addEventListener('click', loadDemoData);
+
+  referencias.btnDescargarLog?.addEventListener('click', () => {
+    if (!state.sessionLog.length) {
+      setFeedback(referencias.bandaFeedback, 'No hay datos en el log todavía. Haz algún escaneo.', 'info');
+      return;
+    }
+    const content = state.sessionLog
+      .map(entry => `[${entry.fecha}] - ${entry.tipo}\nDATOS: ${JSON.stringify(entry.datos)}\nRAW:\n${entry.raw}\n----------------------------------`)
+      .join('\n\n');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `duartec-diag-${new Date().getTime()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
 
   window.addEventListener('online', updateNetworkStatus);
   window.addEventListener('offline', updateNetworkStatus);
