@@ -398,6 +398,18 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
     const isAutoZooming = scannerState?.autoZoomStage > 0;
 
     overlay.innerHTML = `
+      <div id="scannerFlashContainer" style="
+        position: absolute; 
+        top: 30%; 
+        left: 50%; 
+        transform: translate(-50%, -50%); 
+        z-index: 100; 
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      "></div>
       <div style="display: flex; flex-direction: column; gap: 8px;">
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
           <div style="flex: 1;">
@@ -545,6 +557,46 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
     applyZoom(targetZoom);
   };
 
+  const showFlashMessage = (text) => {
+    const container = overlay.querySelector('#scannerFlashContainer');
+    if (!container) return;
+
+    const el = document.createElement('div');
+    el.textContent = text;
+    el.style.cssText = `
+      background: var(--ok);
+      color: #000;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-weight: 900;
+      font-size: 1rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      animation: flashIn 0.3s ease-out forwards;
+      white-space: nowrap;
+    `;
+    
+    // Add animation style if not exists
+    if (!document.getElementById('scanner-flash-styles')) {
+      const style = document.createElement('style');
+      style.id = 'scanner-flash-styles';
+      style.textContent = `
+        @keyframes flashIn {
+          0% { opacity: 0; transform: translateY(20px) scale(0.8); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    container.appendChild(el);
+    setTimeout(() => {
+      el.style.transition = 'opacity 0.5s, transform 0.5s';
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(-20px)';
+      setTimeout(() => el.remove(), 500);
+    }, 1500);
+  };
+
   const stillnessCanvas = ensureCanvas(32, 24);
   const stillnessCtx = stillnessCanvas.getContext('2d', { willReadFrequently: true });
 
@@ -606,6 +658,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
               if (!currentVal || value.length > currentVal.length) {
                 collectedData[currentField] = value;
                 onFieldScan?.(currentField, value, false);
+                showFlashMessage(`${OCR_FIELD_LABELS[currentField] || currentField} OK`);
                 foundAnyInSnapshot = true;
                 foundBetter = true;
               } else if (value.length === currentVal.length) {
@@ -804,6 +857,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
             if (!currentVal || value.length > currentVal.length) {
               collectedData[currentField] = value;
               onFieldScan?.(currentField, value, false);
+              showFlashMessage(`${OCR_FIELD_LABELS[currentField] || currentField} OK`);
               foundAny = true;
               foundBetter = true;
             } else if (value.length === currentVal.length) {
