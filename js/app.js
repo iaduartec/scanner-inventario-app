@@ -29,7 +29,6 @@ const state = {
   busqueda: '',
   idEdicion: null,
   idRegistroSeleccionado: null,
-  estadoObjetivoEscaneo: 'INSTALADO',
   scanModes: initialSettings.scanModes ?? { qr: false, barcode: false, text: true },
   ocrFields: initialSettings.ocrFields ?? ['marca', 'modelo', 'sn', 'mac'],
   promptDiferido: null,
@@ -38,27 +37,20 @@ const state = {
 
 const referencias = {
   botonInstalarApp: document.querySelector('#installButton'),
-  // Checkboxes de modo
   checkQr: document.querySelector('#scanModeQr'),
   checkBarcode: document.querySelector('#scanModeBarcode'),
   checkText: document.querySelector('#scanModeText'),
-  // OCR field selector
   ocrFieldSelector: document.querySelector('#ocrFieldSelector'),
   ocrFieldMarca: document.querySelector('#ocrFieldMarca'),
   ocrFieldModelo: document.querySelector('#ocrFieldModelo'),
   ocrFieldSn: document.querySelector('#ocrFieldSn'),
   ocrFieldMac: document.querySelector('#ocrFieldMac'),
-  // Rest
-  etiquetaModoLectura: document.querySelector('#scannerModeLabel'),
-  botonEscaneoEquipoInstalado: document.querySelector('#scanEquipoInstaladoButton'),
-  botonEscaneoEquipoDesinstalado: document.querySelector('#scanEquipoDesinstaladoButton'),
-  botonDetenerCamara: document.querySelector('#stopScannerButton'),
+  botonEscaneoUnificado: document.querySelector('#startUnifiedScanButton'),
+  selectEstadoRapido: document.querySelector('#quickStatusSelect'),
+  inputEstadoRapidoCustom: document.querySelector('#quickStatusCustom'),
   entradaImagenPrueba: document.querySelector('#uploadImageInput'),
-  etiquetaModoEscaneo: document.querySelector('#scannerModeLabel'),
   alertaDuplicado: document.querySelector('#duplicateAlert'),
   bandaFeedback: document.querySelector('#feedbackBanner'),
-  serialUltimaCaptura: document.querySelector('#lastSerial'),
-  metaUltimaCaptura: document.querySelector('#lastCaptureMeta'),
   insigniaConexion: document.querySelector('#connectionBadge'),
   contadorRegistros: document.querySelector('#recordCount'),
   contadorEquiposInstalados: document.querySelector('#equipoInstaladoCount'),
@@ -66,12 +58,14 @@ const referencias = {
   cuerpoTablaInventario: document.querySelector('#inventoryTableBody'),
   chipsFiltro: document.querySelector('#filterChips'),
   entradaBusqueda: document.querySelector('#searchInput'),
+  seccionFormulario: document.querySelector('#formSection'),
   formularioInventario: document.querySelector('#inventoryForm'),
   idRegistro: document.querySelector('#recordId'),
   serial: document.querySelector('#serial'),
   marca: document.querySelector('#marca'),
   modelo: document.querySelector('#modelo'),
   estado: document.querySelector('#estado'),
+  inputEstadoCustom: document.querySelector('#estadoCustom'),
   mac: document.querySelector('#mac'),
   actuacion: document.querySelector('#actuacion'),
   cliente: document.querySelector('#cliente'),
@@ -82,7 +76,6 @@ const referencias = {
   botonCancelarEdicion: document.querySelector('#cancelEditButton'),
   botonExportar: document.querySelector('#exportButton'),
   botonVaciarTodo: document.querySelector('#clearAllButton'),
-  botonCargarDemo: document.querySelector('#loadDemoButton'),
   btnDescargarLog: document.querySelector('#downloadLogButton'),
   panelDetalle: document.querySelector('#detailPanel'),
 };
@@ -119,7 +112,6 @@ function syncStateToCheckboxes() {
   if (referencias.checkBarcode) referencias.checkBarcode.checked = state.scanModes.barcode;
   if (referencias.checkText) referencias.checkText.checked = state.scanModes.text;
 
-  // OCR field checkboxes
   const ocrFields = state.ocrFields;
   if (referencias.ocrFieldMarca) referencias.ocrFieldMarca.checked = ocrFields.includes('marca');
   if (referencias.ocrFieldModelo) referencias.ocrFieldModelo.checked = ocrFields.includes('modelo');
@@ -145,9 +137,7 @@ function beep(success = true) {
     gain.gain.value = 0.03;
     oscillator.start();
     oscillator.stop(context.currentTime + 0.12);
-  } catch {
-    // Sin audio disponible, se mantiene el feedback visual.
-  }
+  } catch { }
 }
 
 function findDuplicate(serial, excludedId = null) {
@@ -182,10 +172,8 @@ function syncSelectedRecord(filteredRecords) {
     state.idRegistroSeleccionado = null;
     return;
   }
-
   const stillExists = state.registros.some((record) => record.id === state.idRegistroSeleccionado);
   if (stillExists) return;
-
   state.idRegistroSeleccionado = filteredRecords[0]?.id ?? state.registros[0]?.id ?? null;
 }
 
@@ -220,19 +208,12 @@ function refreshUi() {
   updateOcrFieldSelectorVisibility();
 }
 
-function setScannerLabel() {
-  referencias.etiquetaModoEscaneo.textContent = isScannerActive()
-    ? `Cámara activa · ${getScanModeLabel()} · alta ${state.estadoObjetivoEscaneo}`
-    : `Cámara inactiva · ${getScanModeLabel()}`;
-}
-
 function updateNetworkStatus() {
   const online = navigator.onLine;
   if (isNativePlatform) {
     referencias.insigniaConexion.textContent = `App nativa · v${APP_VERSION}`;
     return;
   }
-
   referencias.insigniaConexion.textContent = online
     ? `Local + offline · v${APP_VERSION}`
     : `Sin conexión · modo offline · v${APP_VERSION}`;
@@ -242,9 +223,11 @@ function resetForm() {
   state.idEdicion = null;
   referencias.formularioInventario.reset();
   referencias.idRegistro.value = '';
-  referencias.estado.value = state.estadoObjetivoEscaneo;
   referencias.botonCancelarEdicion.classList.add('hidden');
   referencias.botonGuardar.textContent = 'Guardar registro';
+  referencias.seccionFormulario.classList.add('hidden');
+  referencias.inputEstadoCustom.classList.add('hidden');
+  referencias.inputEstadoCustom.value = '';
   toggleDuplicateAlert(referencias.alertaDuplicado, false);
 }
 
@@ -255,7 +238,18 @@ function fillForm(record) {
   referencias.mac.value = record.mac ?? '';
   referencias.marca.value = record.marca ?? '';
   referencias.modelo.value = record.modelo;
-  referencias.estado.value = record.estado;
+  
+  const isCustomStatus = !['INSTALADO', 'DESINSTALADO', 'RETIRADO', 'AVERIADO'].includes(record.estado);
+  if (isCustomStatus) {
+    referencias.estado.value = 'OTRO';
+    referencias.inputEstadoCustom.value = record.estado;
+    referencias.inputEstadoCustom.classList.remove('hidden');
+  } else {
+    referencias.estado.value = record.estado;
+    referencias.inputEstadoCustom.classList.add('hidden');
+    referencias.inputEstadoCustom.value = '';
+  }
+
   referencias.actuacion.value = record.actuacion ?? '';
   referencias.cliente.value = record.cliente;
   referencias.ubicacion.value = record.ubicacion;
@@ -263,6 +257,7 @@ function fillForm(record) {
   referencias.observaciones.value = record.observaciones;
   referencias.botonCancelarEdicion.classList.remove('hidden');
   referencias.botonGuardar.textContent = 'Actualizar registro';
+  referencias.seccionFormulario.classList.remove('hidden');
 }
 
 function selectRecord(id) {
@@ -279,7 +274,8 @@ function saveFormRecord(formData, source = 'manual') {
     throw new Error(`El serial ${duplicate.serial} ya existe en inventario.`);
   }
 
-  const record = createRecord({ ...formData, fuenteCaptura: source }, currentRecord);
+  const finalEstado = formData.estado === 'OTRO' ? (formData.estadoCustom || 'OTRO') : formData.estado;
+  const record = createRecord({ ...formData, estado: finalEstado, fuenteCaptura: source }, currentRecord);
   if (currentRecord) {
     state.registros = state.registros.map((item) => (item.id === currentRecord.id ? record : item));
   } else {
@@ -287,11 +283,6 @@ function saveFormRecord(formData, source = 'manual') {
   }
   state.idRegistroSeleccionado = record.id;
   persistRecords();
-  updateLastCapture({
-    serialElement: referencias.serialUltimaCaptura,
-    metaElement: referencias.metaUltimaCaptura,
-    record,
-  });
   refreshUi();
   resetForm();
   setFeedback(referencias.bandaFeedback, `Registro ${currentRecord ? 'actualizado' : 'guardado'}: ${record.serial}.`, 'success');
@@ -300,14 +291,8 @@ function saveFormRecord(formData, source = 'manual') {
 
 function getScanPayload(scanResult) {
   if (typeof scanResult === 'string') {
-    return {
-      serial: scanResult,
-      mac: '',
-      marca: '',
-      modelo: '',
-    };
+    return { serial: scanResult, mac: '', marca: '', modelo: '' };
   }
-
   return {
     serial: scanResult?.serial ?? '',
     mac: scanResult?.mac ?? '',
@@ -322,23 +307,20 @@ async function handleScan(scanResult) {
   const mac = normalizeMac(payload.mac);
   const marca = String(payload.marca ?? '').trim();
   const modelo = String(payload.modelo ?? '').trim();
+  
+  let estadoObjetivo = referencias.selectEstadoRapido.value;
+  if (estadoObjetivo === 'OTRO') {
+    estadoObjetivo = referencias.inputEstadoRapidoCustom.value.trim() || 'OTRO';
+  }
+
   const duplicate = findDuplicate(serial);
   toggleDuplicateAlert(referencias.alertaDuplicado, Boolean(duplicate));
 
   if (duplicate) {
     const cambios = [];
-
-    if (mac && !duplicate.mac) {
-      cambios.push(`MAC ${mac}`);
-    }
-
-    if (marca && !duplicate.marca) {
-      cambios.push(`marca ${marca}`);
-    }
-
-    if (modelo && !duplicate.modelo) {
-      cambios.push(`modelo ${modelo}`);
-    }
+    if (mac && !duplicate.mac) cambios.push(`MAC ${mac}`);
+    if (marca && !duplicate.marca) cambios.push(`marca ${marca}`);
+    if (modelo && !duplicate.modelo) cambios.push(`modelo ${modelo}`);
 
     if (cambios.length) {
       const updatedRecord = createRecord(
@@ -347,82 +329,53 @@ async function handleScan(scanResult) {
           mac: mac || duplicate.mac,
           marca: marca || duplicate.marca,
           modelo: modelo || duplicate.modelo,
-          fuenteCaptura: duplicate.fuenteCaptura ?? 'camara',
         },
         duplicate,
       );
       state.registros = state.registros.map((item) => (item.id === duplicate.id ? updatedRecord : item));
       state.idRegistroSeleccionado = updatedRecord.id;
       persistRecords();
-      updateLastCapture({
-        serialElement: referencias.serialUltimaCaptura,
-        metaElement: referencias.metaUltimaCaptura,
-        record: updatedRecord,
-      });
       refreshUi();
-      setFeedback(referencias.bandaFeedback, `${cambios.join(' y ')} añadido${cambios.length > 1 ? 's' : ''} al registro existente ${serial}.`, 'success');
+      setFeedback(referencias.bandaFeedback, `${cambios.join(' y ')} añadido al registro ${serial}.`, 'success');
       beep(true);
       return;
     }
 
     state.idRegistroSeleccionado = duplicate.id;
-    updateLastCapture({
-      serialElement: referencias.serialUltimaCaptura,
-      metaElement: referencias.metaUltimaCaptura,
-      record: duplicate,
-    });
     refreshUi();
-    setFeedback(referencias.bandaFeedback, `Duplicado detectado: ${serial} ya está registrado.`, 'error');
+    setFeedback(referencias.bandaFeedback, `Duplicado: ${serial} ya registrado.`, 'error');
     beep(false);
     return;
   }
 
   const record = createRecord({
-    serial,
-    mac,
-    marca,
-    modelo,
-    estado: state.estadoObjetivoEscaneo,
+    serial, mac, marca, modelo,
+    estado: estadoObjetivo,
     actuacion: referencias.actuacion.value,
     cliente: referencias.cliente.value,
     ubicacion: referencias.ubicacion.value,
     tecnico: referencias.tecnico.value,
-    observaciones: '',
     fuenteCaptura: 'camara',
   });
 
   state.registros = [record, ...state.registros];
   state.idRegistroSeleccionado = record.id;
   persistRecords();
-  updateLastCapture({ serialElement: referencias.serialUltimaCaptura, metaElement: referencias.metaUltimaCaptura, record });
   refreshUi();
-  setFeedback(
-    referencias.bandaFeedback,
-    [
-      `Escaneo correcto: ${serial}`,
-      mac ? `MAC ${mac}` : null,
-      marca ? `marca ${marca}` : null,
-      modelo ? `modelo ${modelo}` : null,
-    ]
-      .filter(Boolean)
-      .join(' · ') + ` registrado como ${record.estado}.`,
-    'success',
-  );
+  setFeedback(referencias.bandaFeedback, `Escaneo OK: ${serial} -> ${record.estado}.`, 'success');
   beep(true);
 }
 
-async function activateScanner(estadoObjetivo) {
+async function activateScanner() {
   syncCheckboxesToState();
-  state.estadoObjetivoEscaneo = estadoObjetivo;
-  referencias.estado.value = estadoObjetivo;
+  const estadoObjetivo = referencias.selectEstadoRapido.value;
   setFeedback(referencias.bandaFeedback, 'Inicializando cámara...', 'info');
-  setScannerLabel();
 
   const modes = state.scanModes;
   const hasAnyMode = modes.qr || modes.barcode || modes.text;
 
   if (!hasAnyMode) {
-    setFeedback(referencias.bandaFeedback, 'Selecciona al menos un modo de escaneo (QR, Código de barras o Texto).', 'error');
+    setFeedback(referencias.bandaFeedback, 'Selecciona al menos un modo de escaneo.', 'error');
     return;
   }
 
@@ -430,7 +383,7 @@ async function activateScanner(estadoObjetivo) {
     if (modes.text) {
       const fields = getSelectedOcrFields();
       if (!fields.length) {
-        setFeedback(referencias.bandaFeedback, 'Selecciona al menos un campo OCR para escanear.', 'error');
+        setFeedback(referencias.bandaFeedback, 'Selecciona al menos un campo OCR.', 'error');
         return;
       }
 
@@ -438,33 +391,16 @@ async function activateScanner(estadoObjetivo) {
         elementId: 'reader',
         fields,
         onFieldScan: (field, value, skipped) => {
-          const fieldLabels = { marca: 'Marca', modelo: 'Modelo', sn: 'N/S', mac: 'MAC' };
-          const label = fieldLabels[field] ?? field;
-          if (skipped) {
-            setFeedback(referencias.bandaFeedback, `${label}: no detectado, dejado en blanco.`, 'info');
-          } else {
-            setFeedback(referencias.bandaFeedback, `${label}: "${value}" capturado.`, 'success');
-            beep(true);
-          }
+          if (!skipped) beep(true);
         },
         onComplete: async (collectedData) => {
-          setScannerLabel();
-          // Map OCR fields to form and create record
           const serial = collectedData.sn ?? '';
           const mac = collectedData.mac ?? '';
           const marca = collectedData.marca ?? '';
           const modelo = collectedData.modelo ?? '';
 
           if (!serial) {
-            // Populate form for manual completion
-            if (marca) referencias.marca.value = marca;
-            if (modelo) referencias.modelo.value = modelo;
-            if (mac) referencias.mac.value = mac;
-            setFeedback(
-              referencias.bandaFeedback,
-              `Escaneo completado. No se detectó N/S. Completa el serial manualmente.${marca ? ` Marca: ${marca}` : ''}${modelo ? ` Modelo: ${modelo}` : ''}${mac ? ` MAC: ${mac}` : ''}`,
-              'info',
-            );
+            setFeedback(referencias.bandaFeedback, 'N/S no detectado. Reintenta o edita manualmente.', 'info');
             return;
           }
 
@@ -476,33 +412,22 @@ async function activateScanner(estadoObjetivo) {
               raw: collectedData.rawText
             });
           }
-
           await handleScan({ serial, mac, marca, modelo });
         },
-        onError: () => {},
+        onError: () => { },
       });
     } else {
       await startScanner({
         elementId: 'reader',
         modes,
         onScan: (decodedText) => handleScan(decodedText),
-        onError: () => {},
+        onError: () => { },
       });
     }
 
-    setScannerLabel();
-    setFeedback(
-      referencias.bandaFeedback,
-      `Cámara lista para registrar equipos en estado ${estadoObjetivo} usando ${getScanModeLabel()}.`,
-      'info',
-    );
+    setFeedback(referencias.bandaFeedback, `Escaneando en estado ${estadoObjetivo}.`, 'info');
   } catch (error) {
-    setScannerLabel();
-    setFeedback(
-      referencias.bandaFeedback,
-      `No se pudo abrir la cámara. Verifica permisos en Safari/Chrome móvil. ${error.message}`,
-      'error',
-    );
+    setFeedback(referencias.bandaFeedback, `Error cámara: ${error.message}`, 'error');
   }
 }
 
@@ -511,97 +436,54 @@ function startEditing(id) {
   if (!record) return;
   state.idRegistroSeleccionado = record.id;
   fillForm(record);
-  updateLastCapture({
-    serialElement: referencias.serialUltimaCaptura,
-    metaElement: referencias.metaUltimaCaptura,
-    record,
-  });
   refreshUi();
-  setFeedback(referencias.bandaFeedback, `Editando ${record.serial}.`, 'info');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function removeRecord(id) {
   const record = state.registros.find((item) => item.id === id);
   if (!record) return;
-
   state.registros = state.registros.filter((item) => item.id !== id);
-  if (state.idRegistroSeleccionado === id) {
-    state.idRegistroSeleccionado = null;
-  }
+  if (state.idRegistroSeleccionado === id) state.idRegistroSeleccionado = null;
   persistRecords();
   refreshUi();
-  toggleDuplicateAlert(referencias.alertaDuplicado, false);
-  setFeedback(referencias.bandaFeedback, `Registro eliminado: ${record.serial}.`, 'info');
+  setFeedback(referencias.bandaFeedback, `Eliminado: ${record.serial}.`, 'info');
 }
 
 function exportRecords() {
-  if (!state.registros.length) {
-    setFeedback(referencias.bandaFeedback, 'No hay registros para exportar.', 'error');
-    return;
-  }
-
+  if (!state.registros.length) return;
   const content = toCsv(getFilteredRecords());
   const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
-  downloadCsv(`duartec-inventario-${timestamp}.csv`, content);
-  setFeedback(referencias.bandaFeedback, 'CSV exportado correctamente.', 'success');
-}
-
-function loadDemoData() {
-  const settings = loadSettings();
-  if (!settings.demoLoaded && !state.registros.length) {
-    state.registros = demoRecords.map(ensureRecordHistory);
-    state.idRegistroSeleccionado = state.registros[0]?.id ?? null;
-    persistRecords();
-    saveSettings({ ...settings, demoLoaded: true });
-    refreshUi();
-    setFeedback(referencias.bandaFeedback, 'Datos demo cargados.', 'success');
-    return;
-  }
-
-  state.registros = demoRecords.map(ensureRecordHistory);
-  state.idRegistroSeleccionado = state.registros[0]?.id ?? null;
-  persistRecords();
-  refreshUi();
-  setFeedback(referencias.bandaFeedback, 'Demo restablecida sobre el almacenamiento local.', 'info');
+  downloadCsv(`duartec-inv-${timestamp}.csv`, content);
+  setFeedback(referencias.bandaFeedback, 'CSV exportado.', 'success');
 }
 
 function clearRecords() {
+  if (!confirm('¿Vaciar todo el inventario local?')) return;
   state.registros = [];
   state.idRegistroSeleccionado = null;
   persistRecords();
   refreshUi();
   resetForm();
-  updateLastCapture({ serialElement: referencias.serialUltimaCaptura, metaElement: referencias.metaUltimaCaptura, record: null });
-  setFeedback(referencias.bandaFeedback, 'Inventario local vaciado.', 'info');
+  setFeedback(referencias.bandaFeedback, 'Inventario vaciado.', 'info');
 }
 
 function registerServiceWorker() {
-  if (isNativePlatform) return;
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {
-      setFeedback(referencias.bandaFeedback, 'No se pudo registrar el modo offline.', 'error');
-    });
+  if (!isNativePlatform && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => { });
   }
 }
 
 function setupInstallPrompt() {
-  if (isNativePlatform) {
-    referencias.botonInstalarApp.classList.add('hidden');
-    return;
-  }
-
+  if (isNativePlatform) return;
   window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
     state.promptDiferido = event;
     referencias.botonInstalarApp.classList.remove('hidden');
   });
-
   referencias.botonInstalarApp.addEventListener('click', async () => {
     if (!state.promptDiferido) return;
     state.promptDiferido.prompt();
-    await state.promptDiferido.userChoice;
     state.promptDiferido = null;
     referencias.botonInstalarApp.classList.add('hidden');
   });
@@ -610,91 +492,52 @@ function setupInstallPrompt() {
 function handleScanModeChange() {
   syncCheckboxesToState();
   updateOcrFieldSelectorVisibility();
-  setScannerLabel();
-  const modeLabel = getScanModeLabel();
-  setFeedback(referencias.bandaFeedback, `Modo de lectura: ${modeLabel}.`, 'info');
+  setFeedback(referencias.bandaFeedback, `Modo: ${getScanModeLabel()}.`, 'info');
 }
 
 function bindEvents() {
-  // Scan mode checkboxes
   referencias.checkQr?.addEventListener('change', handleScanModeChange);
   referencias.checkBarcode?.addEventListener('change', handleScanModeChange);
   referencias.checkText?.addEventListener('change', handleScanModeChange);
 
-  // OCR field checkboxes
   referencias.ocrFieldMarca?.addEventListener('change', () => syncCheckboxesToState());
   referencias.ocrFieldModelo?.addEventListener('change', () => syncCheckboxesToState());
   referencias.ocrFieldSn?.addEventListener('change', () => syncCheckboxesToState());
   referencias.ocrFieldMac?.addEventListener('change', () => syncCheckboxesToState());
 
-  referencias.botonEscaneoEquipoInstalado.addEventListener('click', () => activateScanner('INSTALADO'));
-  referencias.botonEscaneoEquipoDesinstalado.addEventListener('click', () => activateScanner('DESINSTALADO'));
-  referencias.botonDetenerCamara.addEventListener('click', async () => {
-    await stopScanner();
-    setScannerLabel();
-    setFeedback(referencias.bandaFeedback, 'Cámara detenida.', 'info');
+  referencias.botonEscaneoUnificado.addEventListener('click', activateScanner);
+
+  referencias.selectEstadoRapido.addEventListener('change', (e) => {
+    referencias.inputEstadoRapidoCustom.classList.toggle('hidden', e.target.value !== 'OTRO');
+    if (e.target.value === 'OTRO') referencias.inputEstadoRapidoCustom.focus();
+  });
+
+  referencias.estado.addEventListener('change', (e) => {
+    referencias.inputEstadoCustom.classList.toggle('hidden', e.target.value !== 'OTRO');
+    if (e.target.value === 'OTRO') referencias.inputEstadoCustom.focus();
   });
 
   referencias.entradaImagenPrueba?.addEventListener('change', async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     syncCheckboxesToState();
-    const modes = state.scanModes;
-    
-    const hasAnyMode = modes.qr || modes.barcode || modes.text;
-    if (!hasAnyMode) {
-      setFeedback(referencias.bandaFeedback, 'Selecciona al menos un modo de escaneo.', 'error');
-      return;
-    }
-
-    setFeedback(referencias.bandaFeedback, 'Procesando imagen local...', 'info');
-
+    setFeedback(referencias.bandaFeedback, 'Procesando archivo...', 'info');
     try {
-      const fields = modes.text ? getSelectedOcrFields() : [];
       await processFileScan({
-        file,
-        modes,
-        fields,
+        file, modes: state.scanModes, fields: state.scanModes.text ? getSelectedOcrFields() : [],
         onScan: async (data) => {
-          if (modes.text) {
-            const serial = data.serial ?? '';
-            const mac = data.mac ?? '';
-            const marca = data.marca ?? '';
-            const modelo = data.modelo ?? '';
-
-            if (!serial) {
-              if (marca) referencias.marca.value = marca;
-              if (modelo) referencias.modelo.value = modelo;
-              if (mac) referencias.mac.value = mac;
-              if (data.rawText) referencias.observaciones.value = data.rawText;
-              setFeedback(referencias.bandaFeedback, `Incompleto (N/S falló). Revisa "Observaciones" para ver lectura raw.${marca ? ` Marca: ${marca}` : ''}${modelo ? ` Mod: ${modelo}` : ''}`, 'info');
-              return;
-            }
-
+          if (state.scanModes.text) {
             if (data.rawText) {
-              state.sessionLog.push({
-                fecha: new Date().toISOString(),
-                tipo: 'ESCANEO_ARCHIVO',
-                datos: { serial, mac, marca, modelo },
-                raw: data.rawText
-              });
+              state.sessionLog.push({ fecha: new Date().toISOString(), tipo: 'ESCANEO_ARCHIVO', datos: data, raw: data.rawText });
             }
-
-            await handleScan({ serial, mac, marca, modelo });
+            await handleScan(data);
           } else {
             await handleScan(data);
           }
         },
-        onError: (err) => {
-          setFeedback(referencias.bandaFeedback, `Error en archivo: ${err.message || 'No se encontró código'}`, 'error');
-        }
+        onError: (err) => setFeedback(referencias.bandaFeedback, `Error: ${err.message}`, 'error')
       });
-    } catch (err) {
-      setFeedback(referencias.bandaFeedback, `Error subiendo imagen: ${err.message}`, 'error');
-    } finally {
-      event.target.value = ''; // Permite subir la misma imagen de nuevo
-    }
+    } catch (err) { } finally { event.target.value = ''; }
   });
 
   referencias.entradaBusqueda.addEventListener('input', (event) => {
@@ -709,39 +552,35 @@ function bindEvents() {
       saveFormRecord(formData, 'manual');
     } catch (error) {
       setFeedback(referencias.bandaFeedback, error.message, 'error');
-      beep(false);
     }
   });
 
   referencias.serial.addEventListener('input', (event) => {
-    const duplicate = findDuplicate(event.target.value, state.idEdicion);
-    toggleDuplicateAlert(referencias.alertaDuplicado, Boolean(duplicate));
+    toggleDuplicateAlert(referencias.alertaDuplicado, Boolean(findDuplicate(event.target.value, state.idEdicion)));
   });
 
-  referencias.botonCancelarEdicion.addEventListener('click', () => {
-    resetForm();
-    setFeedback(referencias.bandaFeedback, 'Edición cancelada.', 'info');
-  });
-
+  referencias.botonCancelarEdicion.addEventListener('click', resetForm);
   referencias.botonExportar.addEventListener('click', exportRecords);
   referencias.botonVaciarTodo.addEventListener('click', clearRecords);
-  referencias.botonCargarDemo.addEventListener('click', loadDemoData);
 
   referencias.btnDescargarLog?.addEventListener('click', () => {
-    if (!state.sessionLog.length) {
-      setFeedback(referencias.bandaFeedback, 'No hay datos en el log todavía. Haz algún escaneo.', 'info');
-      return;
-    }
+    if (!state.sessionLog.length) return;
     const content = state.sessionLog
-      .map(entry => `[${entry.fecha}] - ${entry.tipo}\nDATOS: ${JSON.stringify(entry.datos)}\nRAW:\n${entry.raw}\n----------------------------------`)
+      .map(entry => `[${entry.fecha}] - ${entry.tipo}\nDATOS: ${JSON.stringify(entry.datos)}\nRAW:\n${entry.raw}\n---`)
       .join('\n\n');
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `duartec-diag-${new Date().getTime()}.txt`;
+    a.download = `diag-${Date.now()}.txt`;
     a.click();
-    URL.revokeObjectURL(url);
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && isScannerActive()) {
+      stopScanner();
+      setFeedback(referencias.bandaFeedback, 'Cámara auto-apagada por inactividad.', 'info');
+    }
   });
 
   window.addEventListener('online', updateNetworkStatus);
@@ -752,35 +591,12 @@ function init() {
   bindEvents();
   registerServiceWorker();
   setupInstallPrompt();
-
-  // Restore checkbox states from settings
   syncStateToCheckboxes();
   updateOcrFieldSelectorVisibility();
-
   const [latest] = getFilteredRecords();
   state.idRegistroSeleccionado = latest?.id ?? null;
-
   refreshUi();
   resetForm();
-  setScannerLabel();
-
-  if (isNativePlatform) {
-    referencias.botonInstalarApp.classList.add('hidden');
-  }
-
-  updateLastCapture({
-    serialElement: referencias.serialUltimaCaptura,
-    metaElement: referencias.metaUltimaCaptura,
-    record: latest ?? null,
-  });
-
-  if (!state.registros.length) {
-    setFeedback(
-      referencias.bandaFeedback,
-      'Inventario listo. Puedes empezar a escanear o cargar datos demo para probar el flujo.',
-      'info',
-    );
-  }
 }
 
 init();

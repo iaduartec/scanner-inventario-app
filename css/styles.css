@@ -284,6 +284,14 @@ h4 { font-size: 1rem; }
   padding: 1.1rem;
   box-shadow: 0 8px 25px rgba(56, 189, 248, 0.3);
 }
+#quickStatusCustom {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid var(--accent);
+  color: #fff;
+  border-radius: 12px;
+  margin-top: -0.25rem;
+  text-align: center;
+}
 .quick-actions {
   display: grid;
   grid-template-columns: 1fr;

@@ -129,7 +129,9 @@
               <option value="DESINSTALADO">DESINSTALADO</option>
               <option value="RETIRADO">RETIRADO</option>
               <option value="AVERIADO">AVERIADO</option>
+              <option value="OTRO">OTRO (especificar...)</option>
             </select>
+            <input id="quickStatusCustom" type="text" class="status-selector-compact hidden" placeholder="Escribe el estado aquí..." />
             <button id="startUnifiedScanButton" class="primary-action unified-scan-btn" type="button">
               INICIAR ESCANEO
             </button>
@@ -137,7 +139,7 @@
 
           <div style="margin-top: 1rem; display: flex; justify-content: center;">
             <label class="ghost-button" style="cursor: pointer; width: 100%; text-align: center;">
-              Subir imagen de prueba (PC)
+              Subir captura
               <input type="file" id="uploadImageInput" accept="image/*" class="sr-only" />
             </label>
           </div>
@@ -195,7 +197,9 @@
                   <option value="DESINSTALADO">DESINSTALADO</option>
                   <option value="RETIRADO">RETIRADO</option>
                   <option value="AVERIADO">AVERIADO</option>
+                  <option value="OTRO">OTRO (especificar...)</option>
                 </select>
+                <input id="estadoCustom" name="estadoCustom" type="text" class="hidden" style="margin-top: 0.5rem;" placeholder="Especificar otro estado" />
               </label>
               <label>
                 <span>Cliente</span>
