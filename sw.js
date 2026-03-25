@@ -1,4 +1,4 @@
-const CACHE_NAME = "duartec-inventario-v4";
+const CACHE_NAME = "duartec-inventario-v5";
 const ASSETS = [
   "./",
   "./index.html",
@@ -71,30 +71,35 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) return cachedResponse;
+    (async () => {
+      const isHeavyAsset = requestUrl.pathname.includes('/vendor/') || 
+                           requestUrl.pathname.includes('/lang/') ||
+                           requestUrl.pathname.includes('.wasm');
 
-      const fallbackUrl = requestUrl.pathname.startsWith("/download/")
-        ? "./download/index.html"
-        : "./index.html";
+      // Heavy assets: Cache-First
+      if (isHeavyAsset) {
+        const cachedResponse = await caches.match(event.request);
+        if (cachedResponse) return cachedResponse;
+      }
 
-      return fetch(event.request)
-        .then((networkResponse) => {
-          if (
-            !networkResponse ||
-            networkResponse.status !== 200 ||
-            networkResponse.type !== "basic"
-          ) {
-            return networkResponse;
-          }
-
+      // App logic: Network-First
+      try {
+        const networkResponse = await fetch(event.request);
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === "basic") {
           const responseClone = networkResponse.clone();
-          caches
-            .open(CACHE_NAME)
-            .then((cache) => cache.put(event.request, responseClone));
-          return networkResponse;
-        })
-        .catch(() => caches.match(fallbackUrl));
-    }),
+          const cache = await caches.open(CACHE_NAME);
+          cache.put(event.request, responseClone);
+        }
+        return networkResponse;
+      } catch (err) {
+        const cachedResponse = await caches.match(event.request);
+        if (cachedResponse) return cachedResponse;
+
+        const fallbackUrl = requestUrl.pathname.startsWith("/download/")
+          ? "./download/index.html"
+          : "./index.html";
+        return caches.match(fallbackUrl);
+      }
+    })()
   );
 });
