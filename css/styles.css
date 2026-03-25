@@ -295,7 +295,7 @@ h4 { font-size: 1rem; }
 .scan-layout { display: grid; gap: 1rem; }
 .reader {
   position: relative;
-  width: min(100%, 400px);
+  width: 100%;
   aspect-ratio: 1 / 1;
   margin: 0.8rem auto;
   background: rgba(2, 6, 23, 0.7);
