@@ -298,7 +298,8 @@ async function getRearCameraStream() {
       video: {
         facingMode: 'environment',
         width: { ideal: 1920 },
-        height: { ideal: 1080 }
+        height: { ideal: 1080 },
+        frameRate: { ideal: 10, max: 15 }, // Lower FPS for stability as requested
       }
     };
     try {
@@ -908,7 +909,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
     }
 
     if (!scannerState.stopped) {
-      scannerState.timerId = window.setTimeout(scanFrame, 1100);
+      scannerState.timerId = window.setTimeout(scanFrame, 1500);
     }
   };
 
