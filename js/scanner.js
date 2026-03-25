@@ -18,8 +18,8 @@ const BARCODE_FORMATS_IOS = [
 ];
 
 const OCR_SERIAL_PATTERNS = [
-  /(?:S\s*\/\s*N|SERIAL(?: NUMBER| NO\.?)?)\s*[:\-]?\s*([A-Z0-9][A-Z0-9-]{4,})/i,
-  /\bSN\s*[:\-]?\s*([A-Z0-9][A-Z0-9-]{4,})/i,
+  /(?:S\s*\/\s*N|SERIAL(?: NUMBER| NO\.?)?)\s*[:\-]?\s*([A-Z0-9][A-Z0-9\s-]{4,})/i,
+  /\bSN\s*[:\-]?\s*([A-Z0-9][A-Z0-9\s-]{4,})/i,
 ];
 
 const OCR_MODEL_PATTERNS = [
@@ -401,6 +401,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
     stopped: false,
     busy: false,
     timerId: null,
+    rotationIndex: 0,
   };
 
   updateFieldDisplay();
@@ -451,22 +452,39 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
       const offsetX = Math.floor((scannerState.canvas.width - drawWidth) / 2);
       const offsetY = Math.floor((scannerState.canvas.height - drawHeight) / 2);
 
+      const rotationAngles = [0, 90, 180, 270];
+      const angle = rotationAngles[scannerState.rotationIndex];
+      const isSwapped = angle === 90 || angle === 270;
+
+      scannerState.context.save();
       scannerState.context.fillStyle = '#ffffff';
       scannerState.context.fillRect(0, 0, scannerState.canvas.width, scannerState.canvas.height);
+      
+      scannerState.context.translate(scannerState.canvas.width / 2, scannerState.canvas.height / 2);
+      scannerState.context.rotate((angle * Math.PI) / 180);
+
+      // Adjust draw targets for rotation
+      const targetWidth = isSwapped ? drawHeight : drawWidth;
+      const targetHeight = isSwapped ? drawWidth : drawHeight;
+
       scannerState.context.drawImage(
         scannerState.video,
         0,
         0,
         sourceWidth,
         sourceHeight,
-        offsetX,
-        offsetY,
-        drawWidth,
-        drawHeight,
+        -targetWidth / 2,
+        -targetHeight / 2,
+        targetWidth,
+        targetHeight,
       );
+      scannerState.context.restore();
 
       const result = await scannerState.worker.recognize(scannerState.canvas);
       const text = result?.data?.text ?? '';
+
+      // Increment rotation for next frame
+      scannerState.rotationIndex = (scannerState.rotationIndex + 1) % 4;
 
       let foundAny = false;
       const stillSearching = [];
