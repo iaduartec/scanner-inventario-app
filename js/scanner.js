@@ -529,8 +529,8 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
     if (!scannerState.capabilities?.zoom || scannerState.stopped) return;
     const { min, max } = scannerState.capabilities.zoom;
     
-    // Cycle through logical steps: 1x, 2x, 3x
-    const steps = [1, 2, 3].filter(s => s <= max && s >= min);
+    // Cycle through logical steps: 1x, 2x
+    const steps = [1, 2].filter(s => s <= max && s >= min);
     if (steps.length <= 1) return;
 
     let currentIndex = steps.findIndex(s => Math.abs(s - scannerState.currentZoom) < 0.1);
@@ -761,13 +761,13 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
       return;
     }
 
-    // Auto-zoom logic: if nothing found for 3+s, zoom in more
+    // Auto-zoom logic: if nothing found for 3+s, zoom in
     const elapsed = Date.now() - scannerState.startTime;
     if (scannerState.capabilities?.zoom && !scannerState.busy && fieldQueue.length === scannerState.fullQueueLength) {
       const { max } = scannerState.capabilities.zoom;
-      if (elapsed > 3000 && scannerState.autoZoomStage === 1 && max >= 3) {
+      if (elapsed > 3000 && scannerState.autoZoomStage === 1 && max >= 2) {
         scannerState.autoZoomStage = 2;
-        applyZoom(3);
+        applyZoom(2);
       }
     }
 
