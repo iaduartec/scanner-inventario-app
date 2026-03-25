@@ -395,12 +395,13 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
     const remainingLabels = fieldQueue.map(f => OCR_FIELD_LABELS[f] ?? f).join(' · ');
     const displayAngle = [0, 90, 180, 270][scannerState?.rotationIndex ?? 0];
     const zoomLevel = scannerState?.currentZoom ?? 1;
+    const isAutoZooming = scannerState?.autoZoomStage > 0;
 
     overlay.innerHTML = `
       <div style="display: flex; flex-direction: column; gap: 8px;">
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
           <div style="flex: 1;">
-            <div style="margin-bottom: 4px; font-weight: 700;">Apunta a la pegatina (${displayAngle}º)</div>
+            <div style="margin-bottom: 4px; font-weight: 700;">Apunta a la pegatina (${displayAngle}º) ${isAutoZooming ? '🔍' : ''}</div>
             <div style="font-size: 0.75rem; opacity: 0.8; color: var(--accent); line-height: 1.2;">
               ${debugText ? `Captando: ${debugText.substring(0, 40)}...` : 'Buscando datos automáticamente...'}
             </div>
@@ -570,11 +571,15 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
             const value = extractor(text);
             if (value) {
               const currentVal = collectedData[currentField];
-              if (!currentVal || value.length >= currentVal.length) {
+              // Favor longer matches. If same length, keep the first one found (avoid 8 -> B flickering)
+              if (!currentVal || value.length > currentVal.length) {
                 collectedData[currentField] = value;
                 onFieldScan?.(currentField, value, false);
                 foundAnyInSnapshot = true;
                 foundBetter = true;
+              } else if (value.length === currentVal.length) {
+                // Same length, we still count it as found BETTER than nothing, so loop continues efficiently
+                foundBetter = true; 
               }
             }
           }
@@ -669,14 +674,14 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
       return;
     }
 
-    // Auto-zoom logic: if nothing found for some time, zoom in to help
+    // Auto-zoom logic: if nothing found for 3+s, zoom in
     const elapsed = Date.now() - scannerState.startTime;
     if (scannerState.capabilities?.zoom && !scannerState.busy && fieldQueue.length === scannerState.fullQueueLength) {
       const { max } = scannerState.capabilities.zoom;
-      if (elapsed > 4000 && scannerState.autoZoomStage === 0 && max >= 2) {
+      if (elapsed > 3000 && scannerState.autoZoomStage === 0 && max >= 2) {
         scannerState.autoZoomStage = 1;
         applyZoom(2);
-      } else if (elapsed > 8000 && scannerState.autoZoomStage === 1 && max >= 3) {
+      } else if (elapsed > 6000 && scannerState.autoZoomStage === 1 && max >= 3) {
         scannerState.autoZoomStage = 2;
         applyZoom(3);
       }
@@ -761,10 +766,13 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
           const value = extractor(text);
           if (value) {
             const currentVal = collectedData[currentField];
-            if (!currentVal || value.length >= currentVal.length) {
+            // Favor first found match if length is the same (avoid 8 -> B flickering)
+            if (!currentVal || value.length > currentVal.length) {
               collectedData[currentField] = value;
               onFieldScan?.(currentField, value, false);
               foundAny = true;
+              foundBetter = true;
+            } else if (value.length === currentVal.length) {
               foundBetter = true;
             }
           }
