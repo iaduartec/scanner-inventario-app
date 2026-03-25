@@ -18,20 +18,22 @@ const BARCODE_FORMATS_IOS = [
 ];
 
 const OCR_SERIAL_PATTERNS = [
-  /(?:S\s*[\/\\]\s*N|SERIAL(?: NUMBER| NO\.?)?|REF|S\.?N\.?)\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s-]{4,})/i,
-  /\bSN\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s-]{4,})/i,
+  /(?:[5S]\s*[\/\\]\s*N|[5S]ERIAL(?: NUMBER| NO\.?)?|REF|[5S]\.?N\.?|SW\s*[5S]N)\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s-]{6,16})/i,
+  /\b[5S]N\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s-]{6,16})/i,
+  /\bPN\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s-]{6,16})/i,
 ];
 
 const OCR_MODEL_PATTERNS = [
-  /(?:MODEL NAME OF MANUFACTURE|MODEL NAME|MODELO|MODEL)\s*[:\-]?\s*(.+)/i,
+  /(?:MODEL NAME OF MANUFACTURE|MODEL NAME|MODELO|MODEL|MOD)\s*[:\-]?\s*(.+)/i,
 ];
 
 const OCR_MAC_PATTERNS = [
-  /(?:MAC|MAG|MC)\s*[:\-\.=\s\/\\]*\s*([0-9A-FOILSG!|]{2}(?:[-:\s][0-9A-FOILSG!|]{2}){5})/i,
+  /(?:MAC(?:\s*ID)?|MAG|MC|LOW[:ER]*\s*MAC)\s*[:\-\.=\s\/\\]*\s*([0-9A-FOILSG!|]{2}(?:[-:\s][0-9A-FOILSG!|]{2}){5})/i,
+  /\b([0-9A-FOILSG!|]{12})\b/i,
 ];
 
 const OCR_BRAND_PATTERNS = [
-  /(?:BRAND|MARCA)\s*[:\-]?\s*(.+)/i,
+  /(?:BRAND|MARCA|MFR)\s*[:\-]?\s*(.+)/i,
 ];
 
 let activeScanner = null;
@@ -182,7 +184,21 @@ function extractFromOcr(text, patterns) {
 }
 
 function extractSerialFromOcr(text) {
-  const raw = extractFromOcr(text, OCR_SERIAL_PATTERNS);
+  let raw = extractFromOcr(text, OCR_SERIAL_PATTERNS);
+  
+  // High-accuracy fallback for 12-char serials (like Alcatel/Nokia)
+  if (!raw) {
+    const words = text.split(/[\s\n]+/);
+    for (const word of words) {
+      const clean = word.trim().replace(/[^A-Z0-9]/gi, '').toUpperCase();
+      // If it's exactly 12 chars and has non-hex chars, it's likely an Alcatel SN
+      if (clean.length === 12 && /[^0-9A-F]/.test(clean)) {
+        raw = clean;
+        break;
+      }
+    }
+  }
+
   return raw ? normalizeSerial(raw) : null;
 }
 
@@ -197,7 +213,7 @@ function extractModelFromOcr(text) {
 }
 
 const KNOWN_BRANDS = [
-  'ZTE', 'HUAWEI', 'NOKIA', 'ALCATEL', 'CISCO', 'UBIQUITI', 'UBNT',
+  'ZTE', 'HUAWEI', 'NOKIA', 'ALCATEL', 'ALCL', 'CISCO', 'UBIQUITI', 'UBNT',
   'MIKROTIK', 'TP-LINK', 'D-LINK', 'ARUBA', 'JUNIPER', 'EXTREME', 'HP', 'DELL',
   'ARCADYAN', 'SERCOMM', 'SAGEMCOM', 'ASKEY', 'TECHNICOLOR', 'ZYXEL', 'OBSERVA', 
   'MITRASTAR', 'AMPER', 'NETGEAR'
