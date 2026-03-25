@@ -8,7 +8,9 @@ export function normalizeSerial(value) {
   return String(value ?? '')
     .trim()
     .toUpperCase()
-    .replace(/\s+/g, '');
+    .replace(/\s+/g, '')
+    .replace(/^EH5KE/, 'EHSKE')
+    .replace(/^ZTE5/, 'ZTES');
 }
 
 export function normalizeText(value) {
