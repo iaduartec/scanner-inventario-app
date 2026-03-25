@@ -77,7 +77,6 @@ const referencias = {
   botonExportar: document.querySelector('#exportButton'),
   botonVaciarTodo: document.querySelector('#clearAllButton'),
   btnDescargarLog: document.querySelector('#downloadLogButton'),
-  panelDetalle: document.querySelector('#detailPanel'),
 };
 
 function getScanModeLabel() {
@@ -198,11 +197,6 @@ function refreshUi() {
     onDelete: removeRecord,
     onSelect: selectRecord,
     selectedId: state.idRegistroSeleccionado,
-  });
-  renderRecordDetail({
-    container: referencias.panelDetalle,
-    record: getSelectedRecord(),
-    onEdit: startEditing,
   });
   updateCounters({
     records: state.registros,
