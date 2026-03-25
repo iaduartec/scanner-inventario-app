@@ -569,3 +569,60 @@ export function skipCurrentOcrField() {
   // No-op: auto-skip via timeout handles this.
   // This is a hook for future manual skip button.
 }
+
+export async function processFileScan({ file, modes, fields, onScan, onError }) {
+  try {
+    if (modes.text) {
+      if (!window.Tesseract?.createWorker) {
+        throw new Error('La librería OCR no está disponible.');
+      }
+      const worker = await window.Tesseract.createWorker('eng', 1, OCR_ASSETS);
+      const imgUrl = URL.createObjectURL(file);
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error('No se pudo cargar la imagen.'));
+        img.src = imgUrl;
+      });
+
+      const canvas = ensureCanvas(img.width, img.height);
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      context.drawImage(img, 0, 0);
+
+      const result = await worker.recognize(canvas);
+      const text = result?.data?.text ?? '';
+      
+      URL.revokeObjectURL(imgUrl);
+      await worker.terminate();
+
+      const collectedData = {};
+      for (const currentField of fields) {
+        const extractor = OCR_FIELD_EXTRACTORS[currentField];
+        if (extractor) {
+          collectedData[currentField] = extractor(text) || '';
+        }
+      }
+
+      const payload = {
+        serial: collectedData.sn ?? '',
+        mac: collectedData.mac ?? '',
+        marca: collectedData.marca ?? '',
+        modelo: collectedData.modelo ?? ''
+      };
+      
+      return onScan(payload);
+    }
+    
+    if (modes.qr || modes.barcode) {
+      if (typeof Html5Qrcode !== 'function') throw new Error('Librería QR no detectada.');
+      const formats = getFormatsForModes(modes);
+      const html5Qrcode = new Html5Qrcode('reader', isSafari ? {} : { formatsToSupport: formats });
+      const text = await html5Qrcode.scanFile(file, false);
+      html5Qrcode.clear();
+      return onScan(text);
+    }
+  } catch (error) {
+    if (onError) onError(error);
+    else throw error;
+  }
+}

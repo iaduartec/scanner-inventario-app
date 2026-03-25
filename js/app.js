@@ -1,6 +1,6 @@
 import { demoRecords } from './demo-data.js';
 import { APP_VERSION } from './constants.js';
-import { startScanner, startSequentialOcrScanner, stopScanner, isScannerActive } from './scanner.js';
+import { startScanner, startSequentialOcrScanner, stopScanner, isScannerActive, processFileScan } from './scanner.js';
 import { loadRecords, saveRecords, loadSettings, saveSettings } from './storage.js';
 import {
   createRecord,
@@ -52,6 +52,7 @@ const referencias = {
   botonEscaneoEquipoInstalado: document.querySelector('#scanEquipoInstaladoButton'),
   botonEscaneoEquipoDesinstalado: document.querySelector('#scanEquipoDesinstaladoButton'),
   botonDetenerCamara: document.querySelector('#stopScannerButton'),
+  entradaImagenPrueba: document.querySelector('#uploadImageInput'),
   etiquetaModoEscaneo: document.querySelector('#scannerModeLabel'),
   alertaDuplicado: document.querySelector('#duplicateAlert'),
   bandaFeedback: document.querySelector('#feedbackBanner'),
@@ -621,6 +622,58 @@ function bindEvents() {
     await stopScanner();
     setScannerLabel();
     setFeedback(referencias.bandaFeedback, 'Cámara detenida.', 'info');
+  });
+
+  referencias.entradaImagenPrueba?.addEventListener('change', async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    syncCheckboxesToState();
+    const modes = state.scanModes;
+    
+    const hasAnyMode = modes.qr || modes.barcode || modes.text;
+    if (!hasAnyMode) {
+      setFeedback(referencias.bandaFeedback, 'Selecciona al menos un modo de escaneo.', 'error');
+      return;
+    }
+
+    setFeedback(referencias.bandaFeedback, 'Procesando imagen local...', 'info');
+
+    try {
+      const fields = modes.text ? getSelectedOcrFields() : [];
+      await processFileScan({
+        file,
+        modes,
+        fields,
+        onScan: async (data) => {
+          if (modes.text) {
+            const serial = data.serial ?? '';
+            const mac = data.mac ?? '';
+            const marca = data.marca ?? '';
+            const modelo = data.modelo ?? '';
+
+            if (!serial) {
+              if (marca) referencias.marca.value = marca;
+              if (modelo) referencias.modelo.value = modelo;
+              if (mac) referencias.mac.value = mac;
+              setFeedback(referencias.bandaFeedback, `Procesado incompleto. No se detectó N/S. Completa el serial manualmente.`, 'info');
+              return;
+            }
+
+            await handleScan({ serial, mac, marca, modelo });
+          } else {
+            await handleScan(data);
+          }
+        },
+        onError: (err) => {
+          setFeedback(referencias.bandaFeedback, `Error en archivo: ${err.message || 'No se encontró código'}`, 'error');
+        }
+      });
+    } catch (err) {
+      setFeedback(referencias.bandaFeedback, `Error subiendo imagen: ${err.message}`, 'error');
+    } finally {
+      event.target.value = ''; // Permite subir la misma imagen de nuevo
+    }
   });
 
   referencias.entradaBusqueda.addEventListener('input', (event) => {
