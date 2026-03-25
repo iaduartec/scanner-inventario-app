@@ -19,8 +19,10 @@ export function normalizeMac(value) {
   const compact = String(value ?? '')
     .trim()
     .toUpperCase()
-    .replace(/[O]/g, '0')
-    .replace(/[IL]/g, '1')
+    .replace(/O/g, '0')
+    .replace(/[IL!|]/g, '1')
+    .replace(/S/g, '5')
+    .replace(/G/g, '6')
     .replace(/[^0-9A-F]/g, '');
 
   if (compact.length < 12) {

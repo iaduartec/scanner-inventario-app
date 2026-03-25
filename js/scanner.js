@@ -27,7 +27,7 @@ const OCR_MODEL_PATTERNS = [
 ];
 
 const OCR_MAC_PATTERNS = [
-  /(?:MAC|MAG|MC)\s*[:\-\.=\s\/\\]*\s*([0-9A-FOIL]{2}(?:[-:\s]?[0-9A-FOIL]{2}){5})/i,
+  /(?:MAC|MAG|MC)\s*[:\-\.=\s\/\\]*\s*([0-9A-FOILSG!|]{2}(?:[-:\s]?[0-9A-FOILSG!|]{2}){5})/i,
 ];
 
 const OCR_BRAND_PATTERNS = [
