@@ -1,32 +1,7 @@
 {
-  "java.configuration.runtimes": [
-    {
-      "name": "JavaSE-17",
-      "path": "/home/kiri_/projects/scanner-inventario-app/.local-jdk/jdk-17",
-      "default": true
-    }
-  ],
-  "java.jdt.ls.java.home": "/home/kiri_/projects/scanner-inventario-app/.local-jdk/jdk-17",
-  "git.enableSmartCommit": false,
-  "git.confirmSync": false,
-  "git.autofetch": true,
-  "chatgpt.cliExecutable": "",
-  "chatgpt.runCodexInWindowsSubsystemForLinux": true,
-  "chatgpt.openOnStartup": true,
-  "gitlens.ai.model": "openai:gpt-4.1",
-  "gitlens.ai.vscode.model": "copilot:gpt-4.1",
-  "playwright.reuseBrowser": false,
-  "playwright.pickLocatorCopyToClipboard": false,
-  "chat.mcp.gallery.enabled": true,
   "editor.formatOnSave": true,
-  "chat.tools.terminal.autoApprove": {
-    "/^node --test \"__tests__/pages/Home\\.test\\.cjs\"$/": {
-      "approve": true,
-      "matchCommandLine": true
-    },
-    "vercel": true,
-    "git init": true
-  },
+  "editor.stickyScroll.enabled": true,
+  "editor.guides.bracketPairs": "active",
   "[typescriptreact]": {
     "editor.defaultFormatter": "vscode.typescript-language-features"
   },
@@ -38,89 +13,5 @@
   },
   "[json]": {
     "editor.defaultFormatter": "vscode.json-language-features"
-  },
-  "github.copilot.enable": {
-    "*": true,
-    "plaintext": false,
-    "markdown": true,
-    "scminput": false
-  },
-  "github.copilot.nextEditSuggestions.enabled": true,
-  "chat.mcp.serverSampling": {
-    "Global in Code: testsprite MCP": {
-      "allowedModels": [
-        "copilot/auto"
-      ]
-    }
-  },
-  "chat.tools.terminal.terminalProfile.linux": {
-    "path": "/usr/bin/zsh",
-    "args": []
-  },
-  "mcpServers": {
-    "kapture": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "kapture-mcp@latest",
-        "bridge"
-      ]
-    }
-  },
-  "chat.mcp.discovery.enabled": {
-    "claude-desktop": true,
-    "cursor-global": true,
-    "cursor-workspace": true
-  },
-  "vscode-edge-devtools.headless": false,
-  "terminal.integrated.profiles.linux": {
-    "bash": {
-      "path": "/usr/bin/bash"
-    },
-    "zsh": {
-      "path": "zsh"
-    },
-    "fish": {
-      "path": "fish"
-    },
-    "tmux": {
-      "path": "tmux",
-      "icon": "terminal-tmux"
-    },
-    "pwsh": {
-      "path": "pwsh",
-      "icon": "terminal-powershell"
-    }
-  },
-  "terminal.integrated.defaultProfile.linux": "bash",
-  "notebook.defaultFormatter": "vscode.markdown-math",
-  "lobstore.skillsDirectory": "/home/kiri_/.openclaw/skills",
-  "git.openRepositoryInParentFolders": "never",
-  "sourcery.token": "user_HMuYKFLBv9Iq8O5bdBhpgTeIhyaj1FANL6FjnJcEgwfJKRm40SpBf_PwEWw",
-  "sourcery.suggestFixes": false,
-  "workbench.editorAssociations": {
-    "*.copilotmd": "vscode.markdown.preview.editor",
-    "*.json": "default"
-  },
-  "chatgpt.localeOverride": "es-ES",
-  "chatgpt.composerEnterBehavior": "cmdIfMultiline",
-  "chat.agentsControl.enabled": true,
-  "workbench.layoutControl.enabled": true,
-  "workbench.navigationControl.enabled": true,
-  "window.commandCenter": true,
-  "security.allowedUNCHosts": [
-    "wsl$"
-  ],
-  "remote.autoForwardPorts": false,
-  "remote.restoreForwardedPorts": false,
-  "remote.WSL.server.connectOnStartup": true,
-  "terminal.integrated.defaultProfile.windows": "Ubuntu (WSL)",
-  "editor.stickyScroll.enabled": true,
-  "editor.cursorBlinking": "expand",
-  "editor.cursorSmoothCaretAnimation": "on",
-  "editor.smoothScrolling": true,
-  "workbench.list.smoothScrolling": true,
-  "editor.inlayHints.enabled": "offUnlessPressed",
-  "editor.guides.bracketPairs": "active",
-  "autoAcceptFree.antigravityExecutablePath": "c:\\Users\\kiri_\\AppData\\Local\\Programs\\Antigravity\\Antigravity.exe"
+  }
 }
