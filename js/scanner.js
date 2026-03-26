@@ -271,6 +271,7 @@ async function startBarcodeScanner({ elementId, modes, onScan, onError }) {
   }
 
   const container = getScannerContainer(elementId);
+  container.classList.remove('hidden');
   clearContainer(container);
 
   const formats = getFormatsForModes(modes);
@@ -380,6 +381,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
   }
 
   const container = getScannerContainer(elementId);
+  container.classList.remove('hidden');
   clearContainer(container);
 
   const frame = document.createElement('div');
@@ -987,7 +989,10 @@ export async function stopScanner() {
   } catch {
     // Limpieza best-effort.
   } finally {
-    scanner.container && clearContainer(scanner.container);
+    if (scanner.container) {
+      clearContainer(scanner.container);
+      scanner.container.classList.add('hidden');
+    }
   }
 }
 
