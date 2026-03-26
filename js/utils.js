@@ -134,24 +134,24 @@ export function ensureRecordHistory(record) {
 
 export function toCsv(records) {
   const header = [
-    'FECHA',
-    'SERIAL',
-    'MAC',
+    'ESTADO',
     'MARCA',
     'MODELO',
-    'ESTADO',
+    'N/S',
+    'MAC',
     'OBSERVACIONES',
+    'FECHA',
   ];
 
   const rows = records.map((record) =>
     [
-      formatDateTime(record.fechaUltimoMovimiento),
-      record.serial,
-      record.mac || '—',
+      normalizeEstado(record.estado),
       record.marca || '—',
       record.modelo || '—',
-      normalizeEstado(record.estado),
+      record.serial,
+      record.mac || '—',
       record.observaciones || '',
+      formatDateTime(record.fechaUltimoMovimiento),
     ]
       .map(escapeCsv)
       .join(';'),
