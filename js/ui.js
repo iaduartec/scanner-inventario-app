@@ -37,14 +37,14 @@ export function renderRecords({ records: registros, tableBody: cuerpoTabla, onEd
     .map(
       (registro) => `
         <tr>
+          <td><span class="status-pill status-${registro.estado}">${registro.estado}</span></td>
+          <td>${registro.marca || '—'}</td>
+          <td>${registro.modelo || '—'}</td>
           <td class="serial-cell">
             <strong>${registro.serial}</strong>
             <span class="serial-meta">${registro.fuenteCaptura} · ${registro.observaciones || 'Sin obj.'}</span>
           </td>
           <td><strong>${registro.mac || '—'}</strong></td>
-          <td><span class="status-pill status-${registro.estado}">${registro.estado}</span></td>
-          <td>${registro.marca || '—'}</td>
-          <td>${registro.modelo || '—'}</td>
           <td>
             <strong>${formatDateTime(registro.fechaUltimoMovimiento)}</strong>
             <span class="serial-meta">Alta: ${formatDateTime(registro.fechaAlta)}</span>
