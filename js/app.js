@@ -428,7 +428,7 @@ function exportRecords() {
 }
 
 function clearRecords() {
-  if (!confirm('¿Vaciar todo el inventario local?')) return;
+  if (!confirm('¿Confirmas la eliminación permanente de todos los registros del inventario local?')) return;
   state.registros = [];
   state.idRegistroSeleccionado = null;
   persistRecords();

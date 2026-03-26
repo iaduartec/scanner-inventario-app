@@ -249,36 +249,47 @@ También se incluye un CSV de muestra en `examples/export-ejemplo.csv`.
 - El escáner arranca con librerías locales vendorizadas, así que no depende de CDN para abrir offline.
 - El modo `S/N` depende de OCR y necesita mejor luz y encuadre que un barcode convencional.
 - El wrapper nativo usa las mismas rutas locales que la PWA, así que no hereda dependencias de CDN en iOS/Android.
+# Duartec Inventario PWA (v1.0)
 
-## Preparación para Google Sheets (siguiente iteración)
+Herramienta profesional de alta precisión para técnicos de campo. Permite el escaneo masivo de equipos IT/Telco, normalización automática de datos y gestión de inventario persistente 100% local.
 
-Aún no se implementa la sincronización, pero la siguiente fase debería añadir:
+## Características Principales
 
-- `js/services/sync-service.js` para encapsular sincronización.
-- `config/sync.example.json` con mapeo de columnas y endpoint.
-- Cola local de cambios pendientes.
-- Documentación de credenciales y flujo de publicación.
+- **Scanner-First UI**: Interfaz minimalista diseñada para la velocidad en campo.
+- **Motor OCR Adaptativo**: Reconocimiento dinámico de Seriales (hasta 20 caracteres), MACs y Modelos, optimizado para etiquetas densas (Huawei, Cisco, Nokia, ZTE).
+- **Rendimiento Inteligente**: Ajuste automático de FPS y ciclos de escaneo según la potencia del dispositivo y las condiciones de luz.
+- **Detección de Quietud**: Captura profunda automática cuando el técnico mantiene el pulso estable.
+- **Privacidad Total**: Procesamiento y almacenamiento 100% local (IndexedDB). Los datos nunca salen del dispositivo.
+- **Offline Nativo**: Funciona sin conexión tras la primera carga.
+- **Exportación Profesional**: Generación de reportes CSV optimizados para auditoría y Excel (BOM UTF-8).
 
-## Roadmap resumido
+## Cómo instalar en móvil
 
-### FASE 3
-- Historial de movimientos por serial.
-- Vista detalle del equipo.
-- Registrar cambios de estado sin sobrescribir ciegamente.
+### iOS (Safari)
+1. Abre la URL en Safari.
+2. Toca **Compartir** y selecciona **Añadir a pantalla de inicio**.
+3. Abre la app instalada y concede permisos de cámara.
 
-### FASE 4
-- Capa de servicio para Google Sheets.
-- Configuración desacoplada y documentación.
+### Android (Chrome)
+1. Abre la URL en Chrome.
+2. Usa el banner **Instalar** o el menú del navegador.
+3. Se recomienda Chrome o Samsung Internet para la mejor experiencia PWA.
 
-### FASE 5
-- Accesibilidad fina.
-- Validaciones extra.
-- Iconos PWA finales en múltiples tamaños.
-- Mejoras de rendimiento y offline.
+## Flujo de Trabajo
 
-## Validaciones recomendadas
+1. **Configuración**: Selecciona el "Estado por defecto" (ej. INSTALADO) en la consola superior.
+2. **Escaneo**: Pulsa **INICIAR ESCANEO**. El sistema activará el OCR inteligente.
+3. **Capture**: Apunta a la etiqueta. Si el pulso es firme, el sistema capturará los datos automáticamente.
+4. **Validación**: Revisa los contadores en tiempo real en la sección de inventario.
+5. **Cierre**: Pulsa **EXPORTAR CSV** al final de la jornada para generar el reporte técnico.
 
-- Probar cámara en iPhone Safari y Android Chrome.
-- Validar exportación en Excel.
-- Confirmar persistencia cerrando y reabriendo la app.
-- Verificar instalación como PWA en móvil real.
+## Soporte OCR Avanzado
+
+El motor está pre-entrenado para omitir ruidos visuales comunes y priorizar identificadores útiles:
+- Soporta seriales de 14 a 20 caracteres.
+- Autocorrección de caracteres ambiguos (S/5, 0/O, B/8).
+- Validación de formato MAC estándar.
+- Detección de modelos integrados en la cadena de texto.
+
+---
+© 2026 Duartec Instalaciones Informáticas. Todos los derechos reservados.
