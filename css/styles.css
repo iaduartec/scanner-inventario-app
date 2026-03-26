@@ -60,6 +60,18 @@ textarea { resize: vertical; }
   height: auto;
   display: block;
   color: var(--text);
+  overflow: visible;
+}
+.logo-title {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+}
+.logo-subtitle {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 .topbar-note {
   color: var(--muted);
