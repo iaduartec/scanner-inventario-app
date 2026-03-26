@@ -18,17 +18,17 @@ const BARCODE_FORMATS_IOS = [
 ];
 
 const OCR_SERIAL_PATTERNS = [
-  /(?:[5S]\s*[\/\\]\s*N|[5S]ERIAL(?: NUMBER| NO\.?)?|REF|[5S]\.?N\.?|SW\s*[5S]N)\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s-]{6,16})/i,
+  /(?:[5S]\s*[\/\\]\s*N|[5S]ERIAL(?: NUMBER| NO\.?)?|REF|[5S]\.?N\.?|SW\s*[5S]N|GPON\s*SN|UNIT\s*[5S]N|DEVICE\s*[5S]N)\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s-]{6,16})/i,
   /\b[5S]N\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s-]{6,16})/i,
   /\bPN\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s-]{6,16})/i,
 ];
 
 const OCR_MODEL_PATTERNS = [
-  /(?:MODEL NAME OF MANUFACTURE|MODEL NAME|MODELO|MODEL|MOD)\s*[:\-]?\s*(.+)/i,
+  /(?:MODEL NAME OF MANUFACTURE|MODEL NAME|MODELO|MODEL|MOD|M\/N|MN)\s*[:\-]?\s*(.+)/i,
 ];
 
 const OCR_MAC_PATTERNS = [
-  /(?:MAC(?:\s*ID)?|MAG|MC|LOW[:ER]*\s*MAC)\s*[:\-\.=\s\/\\]*\s*([0-9A-FOILSG!|]{2}(?:[-:\s][0-9A-FOILSG!|]{2}){5})/i,
+  /(?:MAC(?:\s*ID)?|MAG|MC|LOW[:ER]*\s*MAC|WAN\s*MAC|LAN\s*MAC|BASE\s*MAC)\s*[:\-\.=\s\/\\]*\s*([0-9A-FOILSG!|]{2}(?:[-:\s][0-9A-FOILSG!|]{2}){5})/i,
   /\b([0-9A-FOILSG!|]{12})\b/i,
 ];
 
@@ -215,21 +215,40 @@ function extractModelFromOcr(text) {
 const KNOWN_BRANDS = [
   'ZTE', 'HUAWEI', 'NOKIA', 'ALCATEL', 'ALCL', 'CISCO', 'UBIQUITI', 'UBNT',
   'MIKROTIK', 'TP-LINK', 'D-LINK', 'ARUBA', 'JUNIPER', 'EXTREME', 'HP', 'DELL',
-  'ARCADYAN', 'SERCOMM', 'SAGEMCOM', 'ASKEY', 'TECHNICOLOR', 'ZYXEL', 'OBSERVA', 
-  'MITRASTAR', 'AMPER', 'NETGEAR'
+  'ARCADYAN', 'SERCOMM', 'SAGEMCOM', 'SAGEM', 'TECHNICOLOR', 'TCH', 'ZYXEL', 'OBSERVA', 
+  'MITRASTAR', 'AMPER', 'NETGEAR', 'COMPAL', 'HUMAX', 'ASKEY', 'MOVISTAR', 'JAZZTEL', 'ORANGE'
 ];
 
 function extractBrandFromOcr(text) {
   const raw = extractFromOcr(text, OCR_BRAND_PATTERNS);
-  if (raw) return normalizeText(raw.replace(/\s+/g, ' '));
-
-  const upperText = text.toUpperCase();
-  for (const brand of KNOWN_BRANDS) {
-    if (upperText.includes(brand)) {
-      return brand;
+  let brand = '';
+  if (raw) {
+    brand = normalizeText(raw.replace(/\s+/g, ' '));
+  } else {
+    const upperText = text.toUpperCase();
+    for (const b of KNOWN_BRANDS) {
+      if (upperText.includes(b)) {
+        brand = b;
+        break;
+      }
     }
   }
-  return '';
+
+  // Normalization for known technical aliases
+  const BRAND_MAP = {
+    'ALCL': 'ALCATEL',
+    'ALCL-LUCENT': 'ALCATEL',
+    'ALCATEL-LUCENT': 'ALCATEL',
+    'UBNT': 'UBIQUITI',
+    'SAGEM': 'SAGEMCOM',
+    'TCH': 'TECHNICOLOR',
+    'TCH-COLOR': 'TECHNICOLOR',
+    'MOVISTAR': 'ASKEY/MITRASTAR',
+    'JAZZTEL': 'ZTE',
+  };
+
+  const upperBrand = brand.toUpperCase();
+  return BRAND_MAP[upperBrand] ?? brand;
 }
 
 const OCR_FIELD_EXTRACTORS = {
