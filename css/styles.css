@@ -593,3 +593,22 @@ label span { font-weight: 600; }
   .table-actions { flex-direction: column; }
   .table-actions button { width: 100%; }
 }
+
+.main-footer {
+  text-align: center;
+  padding: 1.5rem 0 2rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  opacity: 0.6;
+  font-family: 'Montserrat', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.main-footer a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 700;
+}
+.main-footer a:hover {
+  text-decoration: underline;
+}
