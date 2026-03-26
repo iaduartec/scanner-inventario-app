@@ -18,9 +18,9 @@ const BARCODE_FORMATS_IOS = [
 ];
 
 const OCR_SERIAL_PATTERNS = [
-  /(?:[5S]\s*[\/\\]\s*N|[5S]ERIAL(?: [5S]ERVICE)?(?: NUMBER| NO\.?)?|REF|[5S]\.?N\.?|SW\s*[5S]N|GPON\s*SN|UNIT\s*[5S]N|DEVICE\s*[5S]N)\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s\-!|\\\/]{6,16})/i,
-  /\b[5S]N\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s\-!|\\\/]{6,16})/i,
-  /\bPN\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s\-!|\\\/]{6,16})/i,
+  /(?:[5S]\s*[\/\\]\s*N|[5S]ERIAL(?: [5S]ERVICE)?(?: NUMBER| NO\.?)?|REF|[5S]\.?N\.?|SW\s*[5S]N|GPON\s*SN|UNIT\s*[5S]N|DEVICE\s*[5S]N)\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s\-!|\\\/]{6,20})/i,
+  /\b[5S]N\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s\-!|\\\/]{6,20})/i,
+  /\bPN\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s\-!|\\\/]{6,20})/i,
 ];
 
 const OCR_MODEL_PATTERNS = [
@@ -186,12 +186,19 @@ function extractFromOcr(text, patterns) {
 function extractSerialFromOcr(text) {
   let raw = extractFromOcr(text, OCR_SERIAL_PATTERNS);
   
-  // High-accuracy fallback for 12-char serials (like Alcatel/Nokia)
   if (!raw) {
-    const words = text.split(/[\s\n]+/);
+    const words = text.split(/[\s\n,;:]+/);
     for (const word of words) {
       const clean = word.trim().replace(/[^A-Z0-9]/gi, '').toUpperCase();
-      // If it's exactly 12 chars and has non-hex chars, it's likely an Alcatel SN
+      
+      // Fallback 1: High-accuracy for long serials (14-20 chars) like Huawei/Nokia/Cisco
+      // Exclude strings that look like MACs (only hex) if they are 12 chars
+      if (clean.length >= 14 && clean.length <= 20) {
+        raw = clean;
+        break;
+      }
+      
+      // Fallback 2: Exactly 12 chars and has non-hex chars (likely an Alcatel SN)
       if (clean.length === 12 && /[^0-9A-F]/.test(clean)) {
         raw = clean;
         break;
