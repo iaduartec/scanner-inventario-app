@@ -517,7 +517,24 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
     autoZoomStage: 0,
     fullQueueLength: fieldQueue.length,
     prefsKey: 'scanner_prefs_v1',
+    perfKey: 'scanner_perf_v1',
+    perf: {
+      consecutiveSuccesses: 0,
+      consecutiveFailures: 0,
+      currentInterval: 1200, // OCR initial interval
+      minInterval: 200,
+      maxInterval: 3000,
+    }
   };
+
+  // Bootstrap performance from history
+  try {
+    const savedPerf = localStorage.getItem(scannerState.perfKey);
+    if (savedPerf) {
+      const parsed = JSON.parse(savedPerf);
+      if (parsed.interval) scannerState.perf.currentInterval = Math.max(scannerState.perf.minInterval, Math.min(parsed.interval, scannerState.perf.maxInterval));
+    }
+  } catch (e) {}
 
   try {
     const [track] = stream.getVideoTracks();
@@ -913,13 +930,27 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
       if (foundAny) {
         fieldQueue = stillSearching;
         lastFoundTime = Date.now();
+        // Adaptive: accelerate on success
+        scannerState.perf.consecutiveSuccesses++;
+        scannerState.perf.consecutiveFailures = 0;
+        scannerState.perf.currentInterval = Math.max(scannerState.perf.minInterval, scannerState.perf.currentInterval - 150);
+        
         updateFieldDisplay();
 
         if (fieldQueue.length === 0) {
           savePrefs();
+          // Persist performance gain
+          localStorage.setItem(scannerState.perfKey, JSON.stringify({ interval: scannerState.perf.currentInterval }));
           await stopScanner();
           await Promise.resolve(onComplete({ ...collectedData, rawText: allRawTexts.join('\n\n') }));
           return;
+        }
+      } else {
+        // Adaptive: decelerate on repeated failure to save CPU/Battery
+        scannerState.perf.consecutiveFailures++;
+        scannerState.perf.consecutiveSuccesses = 0;
+        if (scannerState.perf.consecutiveFailures > 3) {
+          scannerState.perf.currentInterval = Math.min(scannerState.perf.maxInterval, scannerState.perf.currentInterval + 200);
         }
       }
     } catch (error) {
@@ -929,7 +960,7 @@ export async function startSequentialOcrScanner({ elementId, fields, onFieldScan
     }
 
     if (!scannerState.stopped) {
-      scannerState.timerId = window.setTimeout(scanFrame, 1500);
+      scannerState.timerId = window.setTimeout(scanFrame, scannerState.perf.currentInterval);
     }
   };
 
