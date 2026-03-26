@@ -18,17 +18,17 @@ const BARCODE_FORMATS_IOS = [
 ];
 
 const OCR_SERIAL_PATTERNS = [
-  /(?:[5S]\s*[\/\\]\s*N|[5S]ERIAL(?: NUMBER| NO\.?)?|REF|[5S]\.?N\.?|SW\s*[5S]N|GPON\s*SN|UNIT\s*[5S]N|DEVICE\s*[5S]N)\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s-]{6,16})/i,
-  /\b[5S]N\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s-]{6,16})/i,
-  /\bPN\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s-]{6,16})/i,
+  /(?:[5S]\s*[\/\\]\s*N|[5S]ERIAL(?: [5S]ERVICE)?(?: NUMBER| NO\.?)?|REF|[5S]\.?N\.?|SW\s*[5S]N|GPON\s*SN|UNIT\s*[5S]N|DEVICE\s*[5S]N)\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s\-!|\\\/]{6,16})/i,
+  /\b[5S]N\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s\-!|\\\/]{6,16})/i,
+  /\bPN\s*[:\-\.=\s\/\\]*\s*([A-Z0-9][A-Z0-9\s\-!|\\\/]{6,16})/i,
 ];
 
 const OCR_MODEL_PATTERNS = [
-  /(?:MODEL NAME OF MANUFACTURE|MODEL NAME|MODELO|MODEL|MOD|M\/N|MN)\s*[:\-]?\s*(.+)/i,
+  /(?:MODEL NAME OF MANUFACTURE|MODEL NAME|MODELO|MODEL|MOD|M\/N|MN)\s*[:\-=]*\s*(.+)/i,
 ];
 
 const OCR_MAC_PATTERNS = [
-  /(?:MAC(?:\s*ID)?|MAG|MC|LOW[:ER]*\s*MAC|WAN\s*MAC|LAN\s*MAC|BASE\s*MAC)\s*[:\-\.=\s\/\\]*\s*([0-9A-FOILSG!|]{2}(?:[-:\s][0-9A-FOILSG!|]{2}){5})/i,
+  /(?:MAC(?:\s*ID)?|MAG|MC|LOW[:ER]*\s*MAC|WAN\s*MAC|LAN\s*MAC|BASE\s*MAC|ETH\s*MAC)\s*[:\-\.=\s\/\\]*\s*([0-9A-FOILSG!|]{2}(?:[-:\s][0-9A-FOILSG!|]{2}){5})/i,
   /\b([0-9A-FOILSG!|]{12})\b/i,
 ];
 

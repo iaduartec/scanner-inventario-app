@@ -7,14 +7,19 @@ const LEGACY_ESTADO_MAP = {
 export function normalizeSerial(value) {
   return String(value ?? '')
     .trim()
-    .toUpperCase()
+    .replace(/^[:\-\.=\s\/\\]+/, '') // Remove leading noise
+    .replace(/[!|\\\/]/g, 'I') // Convert common separators to I (conservative for Cisco)
     .replace(/\s+/g, '')
+    .toUpperCase()
     .replace(/^EH5KE/, 'EHSKE')
     .replace(/^ZTE5/, 'ZTES');
 }
 
 export function normalizeText(value) {
-  return String(value ?? '').trim();
+  let text = String(value ?? '').trim();
+  // Clean common OCR prefix leftovers
+  text = text.replace(/^(?:OF AN|OF|AN|MANUFACTURE|NAME|MODEL|[:\-\s,=])*[\s,=]*/i, '');
+  return text.trim();
 }
 
 export function normalizeMac(value) {
@@ -129,38 +134,24 @@ export function ensureRecordHistory(record) {
 
 export function toCsv(records) {
   const header = [
-    'id',
-    'serial',
-    'mac',
-    'marca',
-    'modelo',
-    'estado',
-    'cliente',
-    'actuacion',
-    'ubicacion',
-    'tecnico',
-    'fechaAlta',
-    'fechaUltimoMovimiento',
-    'observaciones',
-    'fuenteCaptura',
+    'FECHA',
+    'SERIAL',
+    'MAC',
+    'MARCA',
+    'MODELO',
+    'ESTADO',
+    'OBSERVACIONES',
   ];
 
   const rows = records.map((record) =>
     [
-      record.id,
+      formatDateTime(record.fechaUltimoMovimiento),
       record.serial,
-      record.mac,
-      record.marca,
-      record.modelo,
+      record.mac || '—',
+      record.marca || '—',
+      record.modelo || '—',
       normalizeEstado(record.estado),
-      record.cliente,
-      record.actuacion,
-      record.ubicacion,
-      record.tecnico,
-      record.fechaAlta,
-      record.fechaUltimoMovimiento,
-      record.observaciones,
-      record.fuenteCaptura,
+      record.observaciones || '',
     ]
       .map(escapeCsv)
       .join(';'),
