@@ -594,21 +594,40 @@ label span { font-weight: 600; }
   .table-actions button { width: 100%; }
 }
 
-.main-footer {
-  text-align: center;
-  padding: 1.5rem 0 2rem;
-  color: var(--muted);
-  font-size: 0.75rem;
-  opacity: 0.6;
-  font-family: 'Montserrat', sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0.5rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
-.main-footer a {
+.brand-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.developer-credit-badge {
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  margin-top: -0.2rem;
+  margin-left: 2px;
+}
+.developer-credit-badge a {
   color: var(--accent);
   text-decoration: none;
-  font-weight: 700;
 }
-.main-footer a:hover {
-  text-decoration: underline;
+.layout {
+  padding: 0.4rem 0.4rem 1.5rem;
+  display: grid;
+  gap: 0.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
+
