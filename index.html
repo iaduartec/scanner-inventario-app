@@ -88,11 +88,11 @@
               INSTALACIONES INFORMÁTICAS
             </text>
           </svg>
-          <p class="topbar-note">Escanea seriales, registra estado y exporta inventario incluso sin conexión.</p>
+          <svg ...>
         </div>
         <div class="header-actions">
-          <a class="ghost-button" href="./download/">Descargar APK</a>
-          <button id="installButton" class="ghost-button hidden" type="button">Instalar app</button>
+          <a class="ghost-button" href="./download/">APK</a>
+          <button id="installButton" class="ghost-button hidden" type="button">INSTALAR</button>
         </div>
       </header>
 
@@ -100,10 +100,9 @@
         <section class="card hero-card" aria-labelledby="acciones-rapidas-title">
           <div class="hero-header">
             <div>
-              <p class="eyebrow">Alta rápida</p>
-              <h2 id="acciones-rapidas-title">Escaneo operativo</h2>
+              <h2 id="acciones-rapidas-title">Consola de Escaneo</h2>
             </div>
-            <span id="connectionBadge" class="badge badge-muted">Sincronía local</span>
+            <span id="connectionBadge" class="badge badge-muted">Offline OK</span>
           </div>
 
           <div class="scan-mode-switch" aria-label="Modo de lectura">
@@ -113,7 +112,6 @@
           </div>
 
           <div id="ocrFieldSelector" class="ocr-field-selector">
-            <p class="eyebrow">Campos a escanear por OCR</p>
             <div class="ocr-field-checks">
               <label class="field-check"><input type="checkbox" id="ocrFieldMarca" checked /> <span>Marca</span></label>
               <label class="field-check"><input type="checkbox" id="ocrFieldModelo" checked /> <span>Modelo</span></label>
@@ -123,7 +121,6 @@
           </div>
 
           <div class="scan-controls-group">
-            <div class="eyebrow">Estado por defecto para el escaneo</div>
             <select id="quickStatusSelect" class="status-selector-compact">
               <option value="INSTALADO" selected>INSTALADO</option>
               <option value="DESINSTALADO">DESINSTALADO</option>
@@ -147,9 +144,6 @@
           <div class="scan-layout">
             <div class="scanner-panel">
               <div id="reader" class="reader hidden" aria-live="polite"></div>
-              <p class="hint">
-                En iPhone usa Safari. En Android, Chrome o Samsung Internet. Acepta los permisos de cámara, apunta al QR, código de barras o a la línea S/N y MAC con buena luz y, si no aparece imagen, recarga la PWA y vuelve a permitir la cámara.
-              </p>
             </div>
 
             <aside class="scan-sidebar">
@@ -233,13 +227,12 @@
         <section class="card filters-card" aria-labelledby="inventario-title">
           <div class="section-header inventory-header">
             <div>
-              <p class="eyebrow">Inventario</p>
-              <h2 id="inventario-title">Registros guardados</h2>
+              <h2 id="inventario-title">Inventario Registrado</h2>
             </div>
             <div class="header-actions">
-              <button id="downloadLogButton" class="ghost-button" type="button">Descargar Log Diagnóstico</button>
-              <button id="exportButton" class="ghost-button" type="button">Exportar CSV</button>
-              <button id="clearAllButton" class="ghost-button danger-text" type="button">Vaciar demo</button>
+              <button id="downloadLogButton" class="ghost-button" type="button">LOG</button>
+              <button id="exportButton" class="ghost-button" type="button">EXPORTAR CSV</button>
+              <button id="clearAllButton" class="ghost-button danger-text" type="button">VACIAR</button>
             </div>
           </div>
 
