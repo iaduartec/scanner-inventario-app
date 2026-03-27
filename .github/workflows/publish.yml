@@ -21,6 +21,9 @@ on:
     tags:
       - "v*"
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   android:
     if: github.event_name != 'workflow_dispatch' || inputs.platform == 'android' || inputs.platform == 'both'

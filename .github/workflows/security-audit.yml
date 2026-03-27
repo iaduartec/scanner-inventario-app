@@ -1,0 +1,75 @@
+name: Security Audit
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+concurrency:
+  group: security-audit
+  cancel-in-progress: false
+
+jobs:
+  npm-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+
+  ruby-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Install bundle audit
+        run: gem install bundler-audit
+
+      - name: Audit Ruby dependencies
+        run: bundle-audit check --update
+
+  snyk-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Snyk CLI
+        uses: snyk/actions/setup@v1.0.0
+        with:
+          snyk-version: latest
+
+      - name: Validate Snyk token
+        run: |
+          if [ -z "$SNYK_TOKEN" ]; then
+            echo "SNYK_TOKEN is not configured."
+            exit 1
+          fi
+
+      - name: Snyk test (npm)
+        run: snyk test --file=package-lock.json --severity-threshold=high

@@ -1,0 +1,178 @@
+name: AI · PR review (OpenAI)
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+concurrency:
+  group: ai-pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  ai-review:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout base (trusted)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 1
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Generate diff
+        run: |
+          git fetch --no-tags --depth=1 origin ${{ github.event.pull_request.head.sha }}
+          git diff ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} > diff.txt
+
+      - name: Run AI review (OpenAI)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          node --input-type=module <<'NODE' > review.txt
+          import fs from "fs";
+
+          const diff = fs.readFileSync("diff.txt", "utf8").slice(0, 8000);
+          const openaiKey = process.env.OPENAI_API_KEY;
+          const geminiKey = process.env.GEMINI_API_KEY;
+
+          if (!openaiKey && !geminiKey) {
+            console.log("SIN INCIDENCIAS RELEVANTES");
+            process.exit(0);
+          }
+
+          const systemPrompt = `
+          RESPONDE SIEMPRE EN ESPAÑOL.
+          NO USES ITALIANO NI INGLÉS.
+
+          Eres un revisor técnico senior.
+
+          Analiza el siguiente diff y comenta SOLO:
+          - bugs potenciales
+          - errores de tipado
+          - problemas de seguridad
+          - malas prácticas reales
+
+          No hagas elogios.
+          No sugieras cambios estéticos.
+          No inventes contexto.
+
+          Si no hay problemas relevantes, responde exactamente:
+          SIN INCIDENCIAS RELEVANTES
+          `.trim();
+
+          async function reviewWithOpenAI() {
+            const res = await fetch("https://api.openai.com/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${openaiKey}`,
+              },
+              body: JSON.stringify({
+                model: "gpt-4o-mini",
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  { role: "user", content: `DIFF:\n${diff}` },
+                ],
+                temperature: 0.2,
+                stream: false,
+              }),
+            });
+
+            if (!res.ok) {
+              const errText = await res.text();
+              throw new Error(`OpenAI ${res.status}: ${errText}`);
+            }
+
+            const json = await res.json();
+            return json.choices?.[0]?.message?.content?.trim() || "SIN INCIDENCIAS RELEVANTES";
+          }
+
+          async function reviewWithGemini() {
+            const prompt = `${systemPrompt}\n\nDIFF:\n${diff}`;
+            const models = [
+              "gemini-2.5-flash",
+              "gemini-1.5-flash-002",
+              "gemini-1.5-flash-latest",
+              "gemini-1.5-flash",
+            ];
+
+            let lastError = null;
+            for (const model of models) {
+              try {
+                const res = await fetch(
+                  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      contents: [{ role: "user", parts: [{ text: prompt }] }],
+                    }),
+                  }
+                );
+
+                if (!res.ok) {
+                  const errText = await res.text();
+                  throw new Error(`Gemini ${res.status}: ${errText}`);
+                }
+
+                const json = await res.json();
+                const text = json.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim();
+                if (text) {
+                  return text;
+                }
+              } catch (error) {
+                lastError = error;
+              }
+            }
+
+            throw lastError ?? new Error("Gemini review failed");
+          }
+
+          const message = geminiKey
+            ? await reviewWithGemini().catch(async (error) => {
+                if (openaiKey) {
+                  console.warn(`Gemini review failed; falling back to OpenAI: ${error instanceof Error ? error.message : String(error)}`);
+                  return reviewWithOpenAI();
+                }
+
+                throw error;
+              })
+            : await reviewWithOpenAI();
+
+          console.log(message || "SIN INCIDENCIAS RELEVANTES");
+          NODE
+
+      - name: Comment on PR
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('review.txt', 'utf8').trim();
+
+            if (!body || body === 'SIN INCIDENCIAS RELEVANTES') {
+              console.log('No relevant issues found, skipping comment.');
+              return;
+            }
+
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `🤖 **IA review (OpenAI)**\n\n${body}`
+            });
