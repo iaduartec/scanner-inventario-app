@@ -17,7 +17,7 @@
     "check": "node --check js/app.js && node --check js/scanner.js && node --check js/storage.js && node --check js/ui.js && node --check js/utils.js"
   },
   "dependencies": {
-    "@capacitor/android": "^8.3.0",
+    "@capacitor/android": "^8.3.4",
     "@capacitor/app": "^8.0.0",
     "@capacitor/core": "^8.0.0",
     "@capacitor/device": "^8.0.2",
