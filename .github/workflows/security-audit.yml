@@ -67,9 +67,9 @@ jobs:
       - name: Validate Snyk token
         run: |
           if [ -z "$SNYK_TOKEN" ]; then
-            echo "SNYK_TOKEN is not configured."
-            exit 1
+            echo "::notice::SNYK_TOKEN is not configured; skipping the optional Snyk scan."
           fi
 
       - name: Snyk test (npm)
+        if: env.SNYK_TOKEN != ''
         run: snyk test --file=package-lock.json --severity-threshold=high
