@@ -3,6 +3,11 @@ require "json"
 default_platform(:android)
 
 PROJECT_ROOT = File.expand_path("..", __dir__)
+ANDROID_DIR = File.join(PROJECT_ROOT, "android")
+ANDROID_AAB = File.join(ANDROID_DIR, "app/build/outputs/bundle/release/app-release.aab")
+IOS_PROJECT = File.join(PROJECT_ROOT, "ios/App/App.xcodeproj")
+IOS_OUTPUT_DIR = File.join(PROJECT_ROOT, "build/ios")
+IOS_IPA = File.join(IOS_OUTPUT_DIR, "DuartecInventario.ipa")
 
 def app_store_connect_api_key_from_env
   json = ENV["APP_STORE_CONNECT_API_KEY_JSON"]
@@ -26,7 +31,7 @@ platform :android do
       gradle(
         task: "bundle",
         build_type: "Release",
-        project_dir: "android"
+        project_dir: ANDROID_DIR
       )
     end
   end
@@ -36,7 +41,7 @@ platform :android do
     build_release
     upload_to_play_store(
       track: ENV.fetch("PLAY_TRACK", "internal"),
-      aab: "android/app/build/outputs/bundle/release/app-release.aab",
+      aab: ANDROID_AAB,
       json_key_data: ENV["PLAY_JSON_KEY_DATA"],
       json_key: ENV["PLAY_JSON_KEY_PATH"],
       skip_upload_metadata: false,
@@ -55,10 +60,10 @@ platform :ios do
       sh("npm run build:web")
       sh("npx cap sync ios")
       build_ios_app(
-        project: "ios/App/App.xcodeproj",
+        project: IOS_PROJECT,
         scheme: "App",
         export_method: ENV.fetch("IOS_EXPORT_METHOD", "app-store"),
-        output_directory: "build/ios",
+        output_directory: IOS_OUTPUT_DIR,
         output_name: "DuartecInventario.ipa"
       )
     end
@@ -69,7 +74,7 @@ platform :ios do
     build_release
     api_key = app_store_connect_api_key_from_env
     upload_to_app_store(
-      ipa: "build/ios/DuartecInventario.ipa",
+      ipa: IOS_IPA,
       skip_metadata: false,
       skip_screenshots: false,
       submit_for_review: false,
