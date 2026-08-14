@@ -2,6 +2,8 @@ require "json"
 
 default_platform(:android)
 
+PROJECT_ROOT = File.expand_path("..", __dir__)
+
 def app_store_connect_api_key_from_env
   json = ENV["APP_STORE_CONNECT_API_KEY_JSON"]
   return nil if json.to_s.strip.empty?
@@ -18,13 +20,15 @@ end
 platform :android do
   desc "Build release AAB for Play Store"
   lane :build_release do
-    sh("npm run build:web")
-    sh("npx cap sync android")
-    gradle(
-      task: "bundle",
-      build_type: "Release",
-      project_dir: "android"
-    )
+    Dir.chdir(PROJECT_ROOT) do
+      sh("npm run build:web")
+      sh("npx cap sync android")
+      gradle(
+        task: "bundle",
+        build_type: "Release",
+        project_dir: "android"
+      )
+    end
   end
 
   desc "Build and upload to Google Play"
@@ -46,16 +50,18 @@ end
 platform :ios do
   desc "Build IPA for App Store Connect"
   lane :build_release do
-    setup_ci if ENV["CI"]
-    sh("npm run build:web")
-    sh("npx cap sync ios")
-    build_ios_app(
-      project: "ios/App/App.xcodeproj",
-      scheme: "App",
-      export_method: ENV.fetch("IOS_EXPORT_METHOD", "app-store"),
-      output_directory: "build/ios",
-      output_name: "DuartecInventario.ipa"
-    )
+    Dir.chdir(PROJECT_ROOT) do
+      setup_ci if ENV["CI"]
+      sh("npm run build:web")
+      sh("npx cap sync ios")
+      build_ios_app(
+        project: "ios/App/App.xcodeproj",
+        scheme: "App",
+        export_method: ENV.fetch("IOS_EXPORT_METHOD", "app-store"),
+        output_directory: "build/ios",
+        output_name: "DuartecInventario.ipa"
+      )
+    end
   end
 
   desc "Build and upload to App Store Connect"
