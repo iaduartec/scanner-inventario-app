@@ -144,8 +144,8 @@ jobs:
             throw lastError ?? new Error("Gemini review failed");
           }
 
-          const message = geminiKey
-            ? await reviewWithGemini().catch(async (error) => {
+          const message = await (geminiKey
+            ? reviewWithGemini().catch(async (error) => {
                 if (openaiKey) {
                   console.warn(`Gemini review failed; falling back to OpenAI: ${error instanceof Error ? error.message : String(error)}`);
                   return reviewWithOpenAI();
@@ -153,7 +153,10 @@ jobs:
 
                 throw error;
               })
-            : await reviewWithOpenAI();
+            : reviewWithOpenAI()).catch((error) => {
+              console.warn(`AI review unavailable; skipping optional review: ${error instanceof Error ? error.message : String(error)}`);
+              return "SIN INCIDENCIAS RELEVANTES";
+            });
 
           console.log(message || "SIN INCIDENCIAS RELEVANTES");
           NODE
