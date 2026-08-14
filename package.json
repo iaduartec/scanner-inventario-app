@@ -28,7 +28,7 @@
     "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.3.0",
+    "@capacitor/cli": "^8.5.0",
     "@resvg/resvg-js": "^2.6.2"
   }
 }
