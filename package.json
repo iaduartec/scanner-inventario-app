@@ -21,7 +21,7 @@
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.5.3",
     "@capacitor/device": "^8.0.3",
-    "@capacitor/ios": "^8.5.2",
+    "@capacitor/ios": "^8.5.3",
     "@capacitor/status-bar": "^8.0.4",
     "@tesseract.js-data/eng": "^1.0.0",
     "html5-qrcode": "^2.3.8",
