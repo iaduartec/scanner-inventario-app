@@ -31,7 +31,6 @@
     "@capacitor/cli": "^8.6.0",
     "@resvg/resvg-js": "^2.6.2"
   },
-  "overrides": {
-      "uuid": "11.1.1"
-  }
+  "overrides": {"uuid": "11.1.1",
+      "minimatch": "11.0.1"}
 }
